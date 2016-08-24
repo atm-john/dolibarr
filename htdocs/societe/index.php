@@ -32,6 +32,7 @@ require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 $langs->load("companies");
 
 $socid = GETPOST('socid','int');
+if (!empty($user->societe_id) && !empty($user->rights->societe->allow_external_user_to_create_tirdparty)) $user->societe_id = null;
 if ($user->societe_id) $socid=$user->societe_id;
 
 // Security check

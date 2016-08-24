@@ -59,6 +59,7 @@ $backtopage	= GETPOST('backtopage','alpha');
 $confirm	= GETPOST('confirm','alpha');
 
 $socid		= GETPOST('socid','int')?GETPOST('socid','int'):GETPOST('id','int');
+if (!empty($user->societe_id) && !empty($user->rights->societe->allow_external_user_to_create_tirdparty)) $user->societe_id = null;
 if ($user->societe_id) $socid=$user->societe_id;
 if (empty($socid) && $action == 'view') $action='create';
 

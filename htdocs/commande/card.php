@@ -79,6 +79,7 @@ $hidedetails = (GETPOST('hidedetails', 'int') ? GETPOST('hidedetails', 'int') : 
 $hidedesc = (GETPOST('hidedesc', 'int') ? GETPOST('hidedesc', 'int') : (! empty($conf->global->MAIN_GENERATE_DOCUMENTS_HIDE_DESC) ? 1 : 0));
 $hideref = (GETPOST('hideref', 'int') ? GETPOST('hideref', 'int') : (! empty($conf->global->MAIN_GENERATE_DOCUMENTS_HIDE_REF) ? 1 : 0));
 
+if (!empty($user->societe_id) && !empty($user->rights->commande->allow_external_user_to_create_order)) $user->societe_id = null;
 // Security check
 if (! empty($user->societe_id))
 	$socid = $user->societe_id;

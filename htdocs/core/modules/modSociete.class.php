@@ -244,6 +244,13 @@ class modSociete extends DolibarrModules
 		$this->rights[$r][4] = 'contact';
 		$this->rights[$r][5] = 'export';
 
+		$r++;
+		$this->rights[$r][0] = 88889;
+		$this->rights[$r][1] = 'Étendre la création/modification des tiers pour un utilisateur externe';
+		$this->rights[$r][2] = 'w';
+		$this->rights[$r][3] = 0;
+		$this->rights[$r][4] = 'allow_external_user_to_create_tirdparty';
+		
 
 		// Menus
 		//-------

@@ -58,6 +58,7 @@ if (! empty($conf->notification->enabled)) $langs->load("mails");
 
 // Security check
 $id = (GETPOST('socid','int') ? GETPOST('socid','int') : GETPOST('id','int'));
+if (!empty($user->societe_id) && !empty($user->rights->societe->allow_external_user_to_create_tirdparty)) $user->societe_id = null;
 if ($user->societe_id > 0) $id=$user->societe_id;
 $result = restrictedArea($user,'societe',$id,'&societe');
 

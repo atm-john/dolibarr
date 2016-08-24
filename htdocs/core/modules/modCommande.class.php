@@ -177,6 +177,13 @@ class modCommande extends DolibarrModules
 		$this->rights[$r][5] = 'export';
 
 
+		$r++;
+		$this->rights[$r][0] = 88888;
+		$this->rights[$r][1] = 'Étendre la création/modification des commandes à tous les clients pour un utilisateur externe';
+		$this->rights[$r][2] = 'w';
+		$this->rights[$r][3] = 0;
+		$this->rights[$r][4] = 'allow_external_user_to_create_order';
+		
 		// Menus
 		//-------
 		$this->menu = 1;        // This module add menu entries. They are coded into menu manager.
