@@ -1231,6 +1231,7 @@ function check_value($mask,$value)
     else $maskrefclient='';
 
     // fail if there is neither a global nor a third party counter
+	
     if (! $hasglobalcounter && ($maskrefclient_maskcounter == ''))
     {
         return 'ErrorBadMask';
@@ -1274,6 +1275,7 @@ function check_value($mask,$value)
 
     // Check length
     $len=dol_strlen($maskwithnocode);
+	
     if (dol_strlen($value) != $len) $result=-1;
 
     // Define $maskLike
