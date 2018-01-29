@@ -142,10 +142,14 @@ if (empty($reshook))
 				// Because createFromClone modifies the object, we must clone it so that we can restore it later
 				$orig = clone $object;
 
-				if($conf->global->PRODUIT_BLOCK_NOT_FOR_SELL_PRODUCT && $object->hasProductNotForSell())
+				if($conf->global->PRODUIT_BLOCK_NOT_FOR_SELL_PRODUCT && $object->hasProductNotForSell()){
 					setEventMessage ($langs->trans("OrderHasProductNotForSell"),'errors');
-				else
+					$result = -1;
+				}
+					
+				else{
 					$result=$object->createFromClone($socid);
+				}
 				if ($result > 0)
 				{
 					header("Location: ".$_SERVER['PHP_SELF'].'?id='.$result);
