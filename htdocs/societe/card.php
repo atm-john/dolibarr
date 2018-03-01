@@ -100,20 +100,30 @@ $result = restrictedArea($user, 'societe', $socid, '&societe', '', 'fk_soc', 'ro
  * Actions
  */
 
+
 $parameters=array('id'=>$socid, 'objcanvas'=>$objcanvas);
 $reshook=$hookmanager->executeHooks('doActions',$parameters,$object,$action);    // Note that $action and $object may have been modified by some hooks
 if ($reshook < 0) setEventMessages($hookmanager->error, $hookmanager->errors, 'errors');
 
 if (empty($reshook))
 {
+	
     if ($cancel)
     {
+		
         $action='';
         if (! empty($backtopage))
         {
+			exit;
             header("Location: ".$backtopage);
             exit;
-        }
+        } else {
+			$url=$_SERVER["PHP_SELF"]."?socid=".$socid;
+         
+				
+            header("Location: ".$url);
+            exit;
+		}
     }
 
 	if ($action == 'confirm_merge' && $confirm == 'yes' && $user->rights->societe->creer)
