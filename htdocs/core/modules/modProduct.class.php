@@ -137,7 +137,7 @@ class modProduct extends DolibarrModules
 		$this->rights[$r][1] = 'Outrepasser le prix de vente minimum d\'un produit';
 		$this->rights[$r][2] = 'r';
 		$this->rights[$r][3] = 0;
-		$this->rights[$r][4] = 'ignore_price_min';
+		$this->rights[$r][4] = 'ignore_price_min_advance';
         $r++;
 
 		$this->rights[$r][0] = 39;
