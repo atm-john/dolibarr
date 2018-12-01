@@ -1746,6 +1746,7 @@ class pdf_cyan extends ModelePDFPropales
 	        'content' => array(
 	            'align' => 'L',
 	        ),
+	        'border-left' => true, // remove left line separator
 	    );
 
 	    $rank = $rank + 10;

@@ -1442,13 +1442,13 @@ function top_menu($head, $title='', $target='', $disablejs=0, $disablehead=0, $a
 	{
 		print "\n".'<!-- Start top horizontal -->'."\n";
 
-		print '<header class="side-nav-vert'.(GETPOST('dol_invisible_topmenu','int')?' hidden':'').'"><div id="id-top">';		// dol_invisible_topmenu differs from dol_hide_topmenu: dol_invisible_topmenu means we output menu but we make it invisible.
+		print '<header class="side-nav-vert'.(GETPOST('dol_invisible_topmenu','int')?' hidden':'').'"><nav id="id-top">';		// dol_invisible_topmenu differs from dol_hide_topmenu: dol_invisible_topmenu means we output menu but we make it invisible.
 
 		// Show menu entries
-		print '<nav id="tmenu_tooltip'.(empty($conf->global->MAIN_MENU_INVERT)?'':'invert').'" class="tmenu">'."\n";
+		print '<div id="tmenu_tooltip'.(empty($conf->global->MAIN_MENU_INVERT)?'':'invert').'" class="tmenu">'."\n";
 		$menumanager->atarget=$target;
 		$menumanager->showmenu('top', array('searchform'=>$searchform, 'bookmarks'=>$bookmarks));      // This contains a \n
-		print "</nav>\n";
+		print "</div>\n";
 
 		// Define link to login card
 		$appli=constant('DOL_APPLICATION_TITLE');
@@ -1595,7 +1595,7 @@ function top_menu($head, $title='', $target='', $disablejs=0, $disablehead=0, $a
 
 		print "</div>\n";		// end div class="login_block"
 
-		print '</div></header>';
+		print '</nav></header>';
 
 		print '<div style="clear: both;"></div>';
 		print "<!-- End top horizontal menu -->\n\n";
