@@ -1033,7 +1033,14 @@ div.fiche {
 	margin-<?php print $left; ?>: 9px !important;
 	margin-<?php print $right; ?>: 10px !important;
 }
+
+body.sidebar-collapse ul.tmenu .tmenu:not(.menuhider){
+	display:none;
+} 
+
+
 <?php } ?>
+
 
 
 
@@ -1085,6 +1092,9 @@ div.firstcolumn div.box {
 div.secondcolumn div.box {
 	padding-left: 10px;
 }
+
+
+
 /* Force values on one colum for small screen */
 @media only screen and (max-width: 1000px)
 {
