@@ -530,47 +530,55 @@ $dashboardgroup = array (
 	'project' =>
 		array (
 			'groupName' => 'Projects',
+            'globalStatsKey' => 'projects',
 			'stats' => array ('project','project_task'),
 		),
 	'propal' =>
 		array (
 			'groupName' => 'Proposals',
+            'globalStatsKey' => 'proposals',
 			'stats' =>
 				array ('propal_opened','propal_signed'),
 		),
 	'supplier_proposal' =>
 		array (
 			'groupName' => 'SupplierProposals',
+            'globalStatsKey' => 'askprice',
 			'stats' =>
 				array ('supplier_proposal_opened','supplier_proposal_signed'),
 		),
 	'commande' =>
 		array (
 			'groupName' => 'Orders',
+            'globalStatsKey' => 'orders',
 			'stats' =>
 				array ('commande'),
 		),
 	'order_supplier' =>
 		array (
 			'groupName' => 'SuppliersOrders',
+            'globalStatsKey' => 'supplier_orders',
 			'stats' =>
 				array ('order_supplier'),
 		),
 	'contrat' =>
 		array (
 			'groupName' => 'Contracts',
+            'globalStatsKey' => 'Contracts',
 			'stats' =>
 				array ('contrat_inactive','contrat_active'),
 		),
 	'facture' =>
 		array (
 			'groupName' => 'Invoices',
+            'globalStatsKey' => 'invoices',
 			'stats' =>
 				array ('facture'),
 		),
 	'invoice_supplier' =>
 		array (
 			'groupName' => 'BillsSuppliers',
+            'globalStatsKey' => 'supplier_invoices',
 			'stats' =>
 				array ('invoice_supplier'),
 		),
@@ -589,18 +597,21 @@ $dashboardgroup = array (
 	'Adherent' =>
 		array (
 			'groupName' => 'Members',
+            'globalStatsKey' => 'members',
 			'stats' =>
 				array ('Adherent'),
 		),
 	'ExpenseReport' =>
 		array (
 			'groupName' => 'ExpenseReport',
+            'globalStatsKey' => 'expensereports',
 			'stats' =>
 				array ('ExpenseReport'),
 		),
 	'Holiday' =>
 		array (
 			'groupName' => 'Holidays',
+			'globalStatsKey' => 'holidays',
 			'stats' =>
 				array ('Holiday'),
 		),
@@ -708,10 +719,43 @@ if (!empty($valid_dashboardlines))
 		{
 			$groupName = $langs->trans($groupElement['groupName']);
 			$groupKeyLowerCase = strtolower($groupKey);
+            $nbTotalForGroup = 0;
+
+			// global stats
+            $globalStatsKey = false;
+            if (!empty($groupElement['globalStatsKey']) && empty($groupElement['globalStats'])){ // can be filled by hook
+                $globalStatsKey = $groupElement['globalStatsKey'];
+                $groupElement['globalStats'] = array();
+
+                if(in_array($globalStatsKey, $keys))
+                {
+                    // get key index of stats used in $includes, $classes, $keys, $icons, $titres, $links
+                    $keyIndex = array_search($globalStatsKey, $keys);
+
+                    $classe=$classes[$keyIndex];
+                    if (isset($boardloaded[$classe]) && is_object($boardloaded[$classe]))
+                    {
+                        $groupElement['globalStats']['total'] = $boardloaded[$classe]->nb[$globalStatsKey]?$boardloaded[$classe]->nb[$globalStatsKey]:0;
+                        $nbTotal = doubleval($groupElement['globalStats']['total']);
+                        if($nbTotal>=10000){ $nbTotal = round($nbTotal/1000 , 2) .'k'; }
+                        $groupElement['globalStats']['text'] = $langs->trans('Total').' : '.$langs->trans($titres[$keyIndex]).' ('.$groupElement['globalStats']['total'].')';
+                        $groupElement['globalStats']['total'] = $nbTotal;
+                        $groupElement['globalStats']['link'] = $links[$keyIndex];
+                    }
+                }
+            }
+
 
 			$openedDashBoard.= '<div class="box-flex-item">'."\n";
 			$openedDashBoard.= '	<div class="info-box '.$openedDashBoardSize.'">'."\n";
-			$openedDashBoard.= '		<span class="info-box-icon bg-infoxbox-'.$groupKeyLowerCase.'"><i class="fa fa-dol-'.$groupKeyLowerCase.'"></i></span>'."\n";
+			$openedDashBoard.= '		<span class="info-box-icon bg-infoxbox-'.$groupKeyLowerCase.'">'."\n";
+			$openedDashBoard.= '		<i class="fa fa-dol-'.$groupKeyLowerCase.'"></i>'."\n";
+
+			if(!empty($groupElement['globalStats'])){
+                $openedDashBoard.= '		<span class="info-box-icon-text" title="'.$groupElement['globalStats']['text'].'">'.$nbTotal.'</span>'."\n";
+            }
+
+			$openedDashBoard.= '		</span>'."\n";
 			$openedDashBoard.= '		<div class="info-box-content">'."\n";
 
 			$openedDashBoard .= '			<span class="info-box-title" title="'.strip_tags($groupName).'">'.$groupName.'</span>' . "\n";
