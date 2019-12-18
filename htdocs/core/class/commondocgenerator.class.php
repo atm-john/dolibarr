@@ -49,6 +49,10 @@ abstract class CommonDocGenerator
      */
 	protected $db;
 
+	/**
+	 * @var double default_font_size
+	 */
+	public $default_font_size;
 
 	/**
 	 *	Constructor
@@ -1159,4 +1163,112 @@ abstract class CommonDocGenerator
         }
         return $this->tabTitleHeight;
     }
+
+	/**
+	 * A convenient method for reset to defaut font add color
+	 * Remember to override this method in pdf_xxxx.module.php
+	 *
+	 * @param TCPDF	    $pdf            TCPDF object
+	 * @return void
+	 */
+	public function resetDefaultFont($pdf)
+	{
+		if(!empty($this->default_font_size))
+		{
+			$pdf->SetFont('', '', $this->default_font_size);
+		}
+
+		$pdf->SetTextColor(0, 0, 0);
+	}
+
+	/**
+	 * A convenient method for PDF pagebreak
+	 *
+	 * @param 	TCPDF 	$pdf TCPDF object, this is also passed as first parameter of $callback function
+	 * @param 	callable $callback a  callable callback function
+	 * @param 	bool 	$autoPageBreak enable page jump
+	 * @param 	array 	$param this is passed to seccond parametter of $callback function
+	 * @return 	float 	Y position
+	 */
+	public function pdfPrintCallback(&$pdf, callable $callback, $autoPageBreak = true, $param = array())
+	{
+		global $conf, $outputlangs;
+		if (is_callable($callback))
+		{
+			$pdf->startTransaction();
+			$posYBefore = $pdf->GetY();
+			$pageposBefore=$pdf->getPage();
+
+			// START FIRST TRY
+			$res = call_user_func_array($callback, array(&$pdf, $param));
+			$pageposAfter=$pdf->getPage();
+			$posYAfter = $pdf->GetY();
+			// END FIRST TRY
+
+			if($autoPageBreak && $pageposAfter > $pageposBefore )
+			{
+				$pagenb = $pageposBefore;
+				$pdf->rollbackTransaction(true);
+				$posY = $posYBefore;
+				// prepare pages to receive content
+				while ($pagenb < $pageposAfter) {
+					$pdf->AddPage();
+					$pagenb++;
+					$this->prepareNewPage($pdf);
+				}
+				// BACK TO START
+				$pdf->setPage($pageposBefore);
+				$pdf->SetY($posYBefore);
+				// RESTART DISPLAY BLOCK - without auto page break
+				$posY = $this->pdfPrintCallback($pdf, $callback, false, $param);
+			}
+			else // No pagebreak
+			{
+				$pdf->commitTransaction();
+			}
+			return $pdf->GetY();
+		}
+	}
+
+	/**
+	 * Prepare new page with header, footer, margin ...
+	 * @param TCPDF $pdf TCPDF object
+	 * @param bool $forceHead force head creation even if MAIN_PDF_DONOTREPEAT_HEAD is enabled
+	 * @return float Y position
+	 */
+	public function prepareNewPage(&$pdf, $forceHead = false)
+	{
+		global $conf, $outputlangs;
+
+		// Set path to the background PDF File
+		if (! empty($conf->global->MAIN_ADD_PDF_BACKGROUND))
+		{
+			$pagecount = $pdf->setSourceFile($conf->mycompany->dir_output.'/'.$conf->global->MAIN_ADD_PDF_BACKGROUND);
+			$tplidx = $pdf->importPage(1);
+		}
+
+		if (! empty($tplidx)) $pdf->useTemplate($tplidx);
+
+		if (($forceHead || empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) && is_callable(array($this, '_pagehead', ))) $this->_pagehead($pdf, $this->object, 0, $outputlangs);
+
+		$topY = $pdf->GetY() + 20;
+		$pdf->SetMargins($this->marge_gauche, $topY, $this->marge_droite); // Left, Top, Right
+
+		$pdf->SetAutoPageBreak(0, 0); // to prevent footer creating page
+		if( is_callable(array($this, '_pagefoot', ))){
+			$footerheight = $this->_pagefoot($pdf, $this->object, $outputlangs);
+		}
+		else{
+			$footerheight = $this->marge_basse;
+		}
+
+		$pdf->SetAutoPageBreak(1, $footerheight);
+
+		// The only function to edit the bottom margin of current page to set it.
+		$pdf->setPageOrientation('', 1, $footerheight);
+
+		$tab_top_newpage = (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)?42:10);
+		return $tab_top_newpage;
+	}
+
 }
