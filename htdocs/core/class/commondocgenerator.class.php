@@ -1193,16 +1193,18 @@ abstract class CommonDocGenerator
 	public function pdfPrintCallback(&$pdf, callable $callback, $autoPageBreak = true, $param = array())
 	{
 		global $conf, $outputlangs;
+
+		$posY = $posYBefore = $pdf->GetY();
+
 		if (is_callable($callback))
 		{
 			$pdf->startTransaction();
-			$posYBefore = $pdf->GetY();
 			$pageposBefore=$pdf->getPage();
 
 			// START FIRST TRY
 			$res = call_user_func_array($callback, array(&$pdf, $param));
 			$pageposAfter=$pdf->getPage();
-			$posYAfter = $pdf->GetY();
+			$posY = $posYAfter = $pdf->GetY();
 			// END FIRST TRY
 
 			if($autoPageBreak && $pageposAfter > $pageposBefore )
@@ -1226,8 +1228,9 @@ abstract class CommonDocGenerator
 			{
 				$pdf->commitTransaction();
 			}
-			return $pdf->GetY();
 		}
+
+		return $posY;
 	}
 
 	/**
@@ -1268,6 +1271,7 @@ abstract class CommonDocGenerator
 		$pdf->setPageOrientation('', 1, $footerheight);
 
 		$tab_top_newpage = (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)?42:10);
+		$pdf->setY($tab_top_newpage); // important to prevent placement based on $pdf->GetY()
 		return $tab_top_newpage;
 	}
 
