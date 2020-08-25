@@ -165,18 +165,11 @@ class ProductCombination
 			/**
 			 * for auto retrocompatibility with last behavior
 			 */
-			$productCombinationLevel = new ProductCombinationLevel($this->db);
-			$productCombinationLevel->fk_price_level = intval($fk_price_level);
-			$productCombinationLevel->fk_product_attribute_combination = $this->id;
-			$productCombinationLevel->variation_price = $this->variation_price;
-			$productCombinationLevel->variation_price_percentage = $this->variation_price_percentage;
-
 			if ($fk_price_level>0){
-				$combination_price_levels[$fk_price_level] = $productCombinationLevel;
-			}
-			else {
+				$combination_price_levels[$fk_price_level] = ProductCombinationLevel::createFromParent($this->db, $this, $fk_price_level);
+			} else {
 				for ($i = 1; $i <= $conf->global->PRODUIT_MULTIPRICES_LIMIT; $i++){
-					$combination_price_levels[$i] = $productCombinationLevel;
+					$combination_price_levels[$i] = ProductCombinationLevel::createFromParent($this->db, $this, $i);
 				}
 			}
 		}
@@ -352,14 +345,14 @@ class ProductCombination
 			return -1;
 		}
 
+		$this->id = $this->db->last_insert_id(MAIN_DB_PREFIX.'product_attribute_combination');
+		
 		if (!empty($conf->global->PRODUIT_MULTIPRICES)) {
-			$res = $this->saveCombinationPriceLevels();
+			$res = $this->fetchCombinationPriceLevels();
 			if ($res<0){
 				return -2;
 			}
 		}
-
-		$this->id = $this->db->last_insert_id(MAIN_DB_PREFIX.'product_attribute_combination');
 
 		return 1;
 	}
@@ -1211,4 +1204,24 @@ class ProductCombinationLevel
 
 		return $res ? 1 : -1;
 	}
+
+    /**
+     * Create new Product Combination Price level from Parent
+     *
+     * @param DoliDB $db
+     * @param ProductCombination $productCombination
+     * @param int $fkPriceLevel
+     *
+     * @return ProductCombinationLevel
+     */
+    public static function createFromParent(DoliDB $db, ProductCombination $productCombination, $fkPriceLevel)
+    {
+        $productCombinationLevel = new self($db);
+        $productCombinationLevel->fk_price_level = $fkPriceLevel;
+        $productCombinationLevel->fk_product_attribute_combination = $productCombination->id;
+        $productCombinationLevel->variation_price = $productCombination->variation_price;
+        $productCombinationLevel->variation_price_percentage = $productCombination->variation_price_percentage;
+
+        return $productCombinationLevel;
+    }
 }
