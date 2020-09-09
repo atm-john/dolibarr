@@ -124,10 +124,11 @@ class FormTicket
     /**
      * Show the form to input ticket
      *
-     * @param  int	 $withdolfichehead			With dol_fiche_head
-     * @return void
+     * @param  	int	 		$withdolfichehead		With dol_fiche_head
+     * @param	string		$mode					Mode ('create' or 'edit')
+     * @return 	void
      */
-    public function showForm($withdolfichehead = 0)
+    public function showForm($withdolfichehead = 0, $mode = 'edit')
     {
         global $conf, $langs, $user, $hookmanager;
 
@@ -414,7 +415,7 @@ class FormTicket
         $reshook = $hookmanager->executeHooks('formObjectOptions', $parameters, $ticketstat, $this->action); // Note that $action and $object may have been modified by hook
         if (empty($reshook))
         {
-            print $ticketstat->showOptionals($extrafields, 'edit');
+            print $ticketstat->showOptionals($extrafields, 'create');
         }
 
         print '</table>';
@@ -986,10 +987,10 @@ class FormTicket
         }
 
         // MESSAGE
-        $defaultmessage = "";
-        if (is_array($arraydefaultmessage) && count($arraydefaultmessage) > 0 && $arraydefaultmessage->content) {
-            $defaultmessage = $arraydefaultmessage->content;
-        }
+        $defaultmessage="";
+		if (is_object($arraydefaultmessage) && $arraydefaultmessage->content) {
+			$defaultmessage = $arraydefaultmessage->content;
+		}
         $defaultmessage = str_replace('\n', "\n", $defaultmessage);
 
         // Deal with format differences between message and signature (text / HTML)

@@ -83,7 +83,8 @@ class Societe extends CommonObject
 	);
 
 	/**
-	 * @var array	List of child tables. To know object to delete on cascade.
+	 * @var array    List of child tables. To know object to delete on cascade.
+	 *               if name like with @ClassNAme:FilePathClass;ParentFkFieldName' it will call method deleteByParentField (with parentId as parameters) and FieldName to fetch and delete child object
 	 */
 	protected $childtablesoncascade = array(
 		"societe_prices",
@@ -92,7 +93,7 @@ class Societe extends CommonObject
 		"product_fournisseur_price",
 		"product_customer_price_log",
 		"product_customer_price",
-		"socpeople",
+		"@Contact:/contact/class/contact.class.php:fk_soc",
 		"adherent",
 		"societe_account",
 		"societe_rib",
@@ -635,6 +636,12 @@ class Societe extends CommonObject
      * @var string Multicurrency code
      */
 	public $multicurrency_code;
+
+	/**
+	 * @var Account Default BAN account
+	 */
+	public $bank_account;
+
 
 	/**
 	 *    Constructor
@@ -1671,16 +1678,36 @@ class Societe extends CommonObject
 				}
 			}
 
-			foreach ($this->childtablesoncascade as $tabletodelete)
+			if (!$error)
 			{
-				if (!$error)
+				foreach ($this->childtablesoncascade as $tabletodelete)
 				{
-					$sql = "DELETE FROM ".MAIN_DB_PREFIX.$tabletodelete;
-					$sql .= " WHERE fk_soc = ".$id;
-					if (!$this->db->query($sql))
-					{
-						$error++;
-						$this->errors[] = $this->db->lasterror();
+					$deleteFromObject=explode(':', $tabletodelete);
+					if (count($deleteFromObject)>=2) {
+						$className=str_replace('@', '', $deleteFromObject[0]);
+						$filepath=$deleteFromObject[1];
+						$columnName=$deleteFromObject[2];
+						if (dol_include_once($filepath)) {
+							$child_object = new $className($this->db);
+							$result = $child_object->deleteByParentField($id, $columnName);
+							if ($result < 0) {
+								$error++;
+								$this->errors[] = $child_object->error;
+								break;
+							}
+						} else {
+							$error++;
+							$this->errors[] = 'Cannot include child class file ' .$filepath;
+							break;
+						}
+					} else {
+						$sql = "DELETE FROM " . MAIN_DB_PREFIX . $tabletodelete;
+						$sql .= " WHERE fk_soc = " . $id;
+						if (!$this->db->query($sql)) {
+							$error++;
+							$this->errors[] = $this->db->lasterror();
+							break;
+						}
 					}
 				}
 			}
@@ -2385,7 +2412,15 @@ class Societe extends CommonObject
 
 		global $action;
 		$hookmanager->initHooks(array('thirdpartydao'));
-		$parameters = array('id'=>$this->id, 'getnomurl'=>$result);
+		$parameters = array(
+			'id'=>$this->id,
+			'getnomurl'=>$result,
+			'withpicto '=> $withpicto,
+			'option'=> $option,
+			'maxlen'=> $maxlen,
+			'notooltip'=> $notooltip,
+			'save_lastsearch_value'=> $save_lastsearch_value
+		);
 		$reshook = $hookmanager->executeHooks('getNomUrl', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
 		if ($reshook > 0) $result = $hookmanager->resPrint;
 		else $result .= $hookmanager->resPrint;
@@ -3524,6 +3559,7 @@ class Societe extends CommonObject
 		$this->phone = $member->phone; // Prof phone
 		$this->email = $member->email;
         $this->socialnetworks = $member->socialnetworks;
+		$this->entity=$member->entity;
 
 		$this->client = 1; // A member is a customer by default
 		$this->code_client = ($customercode ? $customercode : -1);
@@ -4154,6 +4190,17 @@ class Societe extends CommonObject
 				}
 			}
 
+			if (! isset($this->bank_account)) {
+				require_once DOL_DOCUMENT_ROOT.'/societe/class/companybankaccount.class.php';
+				$bac = new CompanyBankAccount($this->db);
+				$result = $bac->fetch(0, $this->id);
+				if ($result > 0) {
+					$this->bank_account = $bac;
+				} else {
+					$this->bank_account = '';
+				}
+			}
+
 			$modelpath = "core/modules/societe/doc/";
 
 			$result = $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
@@ -4231,9 +4278,10 @@ class Societe extends CommonObject
 	 * Sets sales representatives of the thirdparty
 	 *
 	 * @param 	int[]|int 	$salesrep	 	User ID or array of user IDs
+	 * @param   bool        $onlyAdd        Only add (no delete before)
 	 * @return	int							<0 if KO, >0 if OK
 	 */
-	public function setSalesRep($salesrep)
+	public function setSalesRep($salesrep, $onlyAdd = false)
 	{
 		global $user;
 
@@ -4242,16 +4290,18 @@ class Societe extends CommonObject
 			$salesrep = array($salesrep);
 		}
 
-		// Get current users
-		$existing = $this->getSalesRepresentatives($user, 1);
 
-		// Diff
-		if (is_array($existing)) {
-			$to_del = array_diff($existing, $salesrep);
-			$to_add = array_diff($salesrep, $existing);
-		} else {
-			$to_del = array(); // Nothing to delete
-			$to_add = $salesrep;
+		$to_del = array(); // Nothing to delete
+		$to_add = $salesrep;
+		if ($onlyAdd === false) {
+			// Get current users
+			$existing = $this->getSalesRepresentatives($user, 1);
+
+			// Diff
+			if (is_array($existing)) {
+				$to_del = array_diff($existing, $salesrep);
+				$to_add = array_diff($salesrep, $existing);
+			}
 		}
 
 		$error = 0;

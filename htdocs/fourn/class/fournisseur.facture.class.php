@@ -359,7 +359,7 @@ class FactureFournisseur extends CommonInvoice
         $remise = $this->remise;
 
 		// Multicurrency (test on $this->multicurrency_tx because we should take the default rate only if not using origin rate)
-		if (!empty($this->multicurrency_code) && empty($this->multicurrency_tx)) list($this->fk_multicurrency, $this->multicurrency_tx) = MultiCurrency::getIdAndTxFromCode($this->db, $this->multicurrency_code);
+		if (!empty($this->multicurrency_code) && empty($this->multicurrency_tx)) list($this->fk_multicurrency, $this->multicurrency_tx) = MultiCurrency::getIdAndTxFromCode($this->db, $this->multicurrency_code, $this->date);
 		else $this->fk_multicurrency = MultiCurrency::getIdFromCode($this->db, $this->multicurrency_code);
 		if (empty($this->fk_multicurrency))
 		{
@@ -977,6 +977,15 @@ class FactureFournisseur extends CommonInvoice
             }
         }
 
+		if (! $error && empty($conf->global->MAIN_EXTRAFIELDS_DISABLED) && is_array($this->array_options) && count($this->array_options)>0)
+		{
+			$result=$this->insertExtraFields();
+			if ($result < 0)
+			{
+				$error++;
+			}
+		}
+
         if (!$error)
         {
             if (!$notrigger)
@@ -1171,10 +1180,14 @@ class FactureFournisseur extends CommonInvoice
 
         if (!$error)
         {
+            $main = MAIN_DB_PREFIX . 'facture_fourn_det';
+            $ef = $main . "_extrafields";
+            $sqlef = "DELETE FROM $ef WHERE fk_object IN (SELECT rowid FROM $main WHERE fk_facture_fourn = $rowid)";
+            $resqlef = $this->db->query($sqlef);
             $sql = 'DELETE FROM '.MAIN_DB_PREFIX.'facture_fourn_det WHERE fk_facture_fourn = '.$rowid.';';
             dol_syslog(get_class($this)."::delete", LOG_DEBUG);
             $resql = $this->db->query($sql);
-            if ($resql)
+            if ($resqlef && $resql)
             {
                 $sql = 'DELETE FROM '.MAIN_DB_PREFIX.'facture_fourn WHERE rowid = '.$rowid;
                 dol_syslog(get_class($this)."::delete", LOG_DEBUG);
@@ -2025,7 +2038,7 @@ class FactureFournisseur extends CommonInvoice
 		    $this->errors[] = $line->error;
 	    } else {
 		    // Update total price into invoice record
-		    $res = $this->update_price('', 'auto');
+		    $res = $this->update_price('', 'auto', 0, $this->thirdparty);
 	    }
 
 	    return $res;
@@ -3131,6 +3144,11 @@ class SupplierInvoiceLine extends CommonObjectLine
 		}
 
 		$this->deleteObjectLinked();
+
+                $result = $this->deleteExtraFields();
+		if ($result < 0) {
+			$error++;
+		}
 
 		if (!$error) {
 			// Supprime ligne

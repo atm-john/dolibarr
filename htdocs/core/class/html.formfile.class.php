@@ -354,7 +354,7 @@ class FormFile
 
 		// Add entity in $param if not already exists
 		if (!preg_match('/entity\=[0-9]+/', $param)) {
-			$param .= 'entity='.(!empty($object->entity) ? $object->entity : $conf->entity);
+			$param .= ($param ? '&' : '').'entity='.(!empty($object->entity) ? $object->entity : $conf->entity);
 		}
 
 		$printer = 0;
@@ -1269,7 +1269,8 @@ class FormFile
 					}
 					else
 					{
-						print dol_trunc($file['name'], 200);
+						$filenametoshow = preg_replace('/\.noexe$/', '', $file['name']);
+						print dol_trunc($filenametoshow, 200);
 						print '</a>';
 					}
 					// Preview link
@@ -1508,10 +1509,10 @@ class FormFile
 		if (!empty($addfilterfields))
 		{
 			print '<tr class="liste_titre nodrag nodrop">';
-			print '<td></td>';
-			print '<td><input type="text" class="maxwidth100onsmartphone" name="search_doc_ref" value="'.dol_escape_htmltag($search_doc_ref).'"></td>';
-			print '<td></td>';
-			print '<td></td>';
+			print '<td class="liste_titre"></td>';
+			print '<td class="liste_titre"><input type="text" class="maxwidth100onsmartphone" name="search_doc_ref" value="'.dol_escape_htmltag($search_doc_ref).'"></td>';
+			print '<td class="liste_titre"></td>';
+			print '<td class="liste_titre"></td>';
 			// Action column
 			print '<td class="liste_titre center">';
 			$searchpicto = $form->showFilterButtons();

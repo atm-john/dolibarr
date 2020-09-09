@@ -212,8 +212,8 @@ abstract class CommonDocGenerator
             'company_idprof6'=>$object->idprof6,
             'company_note_public'=>$object->note_public,
             'company_note_private'=>$object->note_private,
-            'company_default_bank_iban'=>$object->bank_account->iban,
-            'company_default_bank_bic'=>$object->bank_account->bic
+        	'company_default_bank_iban'=>(is_object($object->bank_account) ? $object->bank_account->iban : ''),
+        	'company_default_bank_bic'=>(is_object($object->bank_account) ? $object->bank_account->bic : '')
         );
 
         // Retrieve extrafields
@@ -513,7 +513,7 @@ abstract class CommonDocGenerator
 		// Retrieve extrafields
 		if (is_array($object->array_options) && count($object->array_options))
 		{
-			$extrafieldkey = $object->element;
+			$extrafieldkey = $object->table_element;
 
 			require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
 			$extrafields = new ExtraFields($this->db);

@@ -428,7 +428,7 @@ class SMTPs
         $host=preg_replace('@ssl://@i', '', $host);	// Remove prefix
         $host=preg_replace('@tls://@i', '', $host);	// Remove prefix
 
-        if ($usetls) $host='tls://'.$host;
+		if ($usetls && ! empty($conf->global->MAIN_SMTPS_ADD_TLS_TO_HOST_FOR_HELO)) $host = 'tls://'.$host;
 
         $hosth = $host;
 
@@ -567,6 +567,8 @@ class SMTPs
                 $host=preg_replace('@tcp://@i', '', $host);	// Remove prefix
                 $host=preg_replace('@ssl://@i', '', $host);	// Remove prefix
                 $host=preg_replace('@tls://@i', '', $host);	// Remove prefix
+
+                if ($usetls && ! empty($conf->global->MAIN_SMTPS_ADD_TLS_TO_HOST_FOR_HELO)) $host = 'tls://'.$host;
 
                 $hosth = $host;
 
@@ -1379,9 +1381,10 @@ class SMTPs
         $strContentAltText = '';
         if ($strType == 'html')
         {
-            // Similar code to forge a text from html is also in CMailFile.class.php
-            $strContentAltText = preg_replace("/<br\s*[^>]*>/", " ", $strContent);
-            $strContentAltText = html_entity_decode(strip_tags($strContentAltText));
+        	// Similar code to forge a text from html is also in CMailFile.class.php
+        	$strContentAltText = preg_replace('/<head><title>.*<\/style><\/head>/', '', $strContent);
+        	$strContentAltText = preg_replace("/<br\s*[^>]*>/", " ", $strContentAltText);
+        	$strContentAltText = html_entity_decode(strip_tags($strContentAltText));
             $strContentAltText = trim(wordwrap($strContentAltText, 75, "\r\n"));
         }
 

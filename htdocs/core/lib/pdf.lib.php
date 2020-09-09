@@ -914,7 +914,7 @@ function pdf_pagefoot(&$pdf, $outputlangs, $paramfreetext, $fromcompany, $marge_
 		// <img alt="" src="/dolibarr_dev/htdocs/viewimage.php?modulepart=medias&amp;entity=1&amp;file=image/ldestailleur_166x166.jpg" style="height:166px; width:166px" />
 		// become
 		// <img alt="" src="'.DOL_DATA_ROOT.'/medias/image/ldestailleur_166x166.jpg" style="height:166px; width:166px" />
-		$newfreetext = preg_replace('/(<img.*src=")[^\"]*viewimage\.php[^\"]*modulepart=medias[^\"]*file=([^\"]*)("[^\/]*\/>)/', '\1'.DOL_DATA_ROOT.'/medias/\2\3', $newfreetext);
+		$newfreetext = preg_replace('/(<img.*src=")[^\"]*viewimage\.php[^\"]*modulepart=medias[^\"]*file=([^\"]*)("[^\/]*\/>)/', '\1'.'file:/'.DOL_DATA_ROOT.'/medias/\2\3', $newfreetext);
 
 		$line .= $outputlangs->convToOutputCharset($newfreetext);
 	}
@@ -1859,7 +1859,6 @@ function pdf_getlineunit($object, $i, $outputlangs, $hidedetails = 0, $hookmanag
 	}
 	if (empty($reshook))
 	{
-        if ($object->lines[$i]->special_code == 3) return '';
 	    if (empty($hidedetails) || $hidedetails > 1) $result .= $langs->transnoentitiesnoconv($object->lines[$i]->getLabelOfUnit('short'));
 	}
 	return $result;
@@ -2108,7 +2107,7 @@ function pdf_getTotalQty($object, $type, $outputlangs)
  */
 function pdf_getLinkedObjects($object, $outputlangs)
 {
-	global $hookmanager;
+	global $db, $hookmanager;
 
 	$linkedobjects = array();
 
@@ -2175,8 +2174,13 @@ function pdf_getLinkedObjects($object, $outputlangs)
 			    // We concat this record info into fields xxx_value. title is overwrote.
 			    if (empty($object->linkedObjects['commande']) && $object->element != 'commande')	// There is not already a link to order and object is not the order, so we show also info with order
 			    {
-			        $elementobject->fetchObjectLinked();
-			        if (!empty($elementobject->linkedObjects['commande'])) $order = reset($elementobject->linkedObjects['commande']);
+			        $elementobject->fetchObjectLinked(null, '', null, '', 'OR', 1, 'sourcetype', 0);
+			        if (! empty($elementobject->linkedObjectsIds['commande'])){
+						include_once DOL_DOCUMENT_ROOT.'/commande/class/commande.class.php';
+						$order = new Commande($db);
+						$ret = $order->fetch(reset($elementobject->linkedObjectsIds['commande']));
+						if ($ret < 1) { $order=null; }
+					}
 			    }
 			    if (!is_object($order))
 			    {
