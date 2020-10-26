@@ -600,7 +600,7 @@ if (($action != 'create' && $action != 'add') && !$error) {
 
 			// Checkbox
 			print '<td class="center">';
-			print '<input class="flat checkformerge" type="checkbox" name="orders_to_invoice[]" value="'.$objp->rowid.'">';
+			print '<input class="flat checkformerge" type="checkbox" name="orders_to_invoice[]" value="'.$objp->rowid.'"  '.(is_array($selected) && in_array($objp->rowid, $selected)?'checked':'').' >';
 			print '</td>';
 
 			print '</tr>';
