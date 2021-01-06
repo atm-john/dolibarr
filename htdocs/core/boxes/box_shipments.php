@@ -104,9 +104,9 @@ class box_shipments extends ModeleBoxes
             $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."commande as c ON el.fk_source = c.rowid AND el.sourcetype IN ('commande') AND el.targettype = 'shipping'";
             $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe as s ON s.rowid = e.fk_soc";
             if (!$user->rights->societe->client->voir && !$user->socid) $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_commerciaux as sc ON e.fk_soc = sc.fk_soc";
-			if($user->socid)	$sql.= " AND s.rowid = ".$user->socid;
             $sql .= " WHERE e.entity IN (".getEntity('expedition').")";
             if (!empty($conf->global->ORDER_BOX_LAST_SHIPMENTS_VALIDATED_ONLY)) $sql .= " AND e.fk_statut = 1";
+			if($user->socid)	$sql.= " AND s.rowid = ".$user->socid;
             if (!$user->rights->societe->client->voir && !$user->socid) $sql .= " AND sc.fk_user = ".$user->id;
             else $sql .= " ORDER BY e.date_delivery, e.ref DESC ";
             $sql .= $this->db->plimit($max, 0);
