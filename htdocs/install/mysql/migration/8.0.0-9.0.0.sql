@@ -307,3 +307,5 @@ ALTER TABLE llx_categorie ADD COLUMN accountancy_code_buy VARCHAR(32) NULL;
 ALTER TABLE llx_product_warehouse_properties ADD COLUMN date_start DATE DEFAULT NULL AFTER desiredstock;
 ALTER TABLE llx_product_warehouse_properties ADD COLUMN date_end DATE DEFAULT NULL AFTER date_start;
 ALTER TABLE llx_product_warehouse_properties ADD COLUMN recurrent BOOLEAN NULL DEFAULT FALSE AFTER date_end;
+
+ALTER TABLE llx_facture_fourn MODIFY COLUMN ref_supplier VARCHAR(180) NOT NULL;

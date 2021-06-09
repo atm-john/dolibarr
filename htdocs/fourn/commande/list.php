@@ -165,6 +165,11 @@ if (is_array($extrafields->attribute_label) && count($extrafields->attribute_lab
 
 if (GETPOST('cancel','alpha')) { $action='list'; $massaction=''; }
 if (! GETPOST('confirmmassaction','alpha') && $massaction != 'presend' && $massaction != 'confirm_presend') { $massaction=''; }
+if (empty($ref_supplier) && $massaction == 'confirm_createsupplierbills')
+{
+	setEventMessage($langs->trans("Error_RefSupplierRequired"), 'errors');
+	$massaction = 'createbills';
+}
 
 $parameters=array('socid'=>$socid);
 $reshook=$hookmanager->executeHooks('doActions',$parameters,$object,$action);    // Note that $action and $object may have been modified by some hooks
@@ -642,6 +647,7 @@ if ($resql)
 	if ($search_billed != '')   $param.="&search_billed=".$search_billed;
 	if ($show_files)            $param.='&show_files=' .$show_files;
 	if ($optioncss != '')       $param.='&optioncss='.$optioncss;
+	if ($search_billed != '')   $param .= "&search_billed=".urlencode($search_billed);
 	// Add $param from extra fields
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
 
@@ -713,7 +719,20 @@ if ($resql)
 		print '</td>';
 		print '</tr>';
 		print '</table>';
-
+		if (!empty($conf->use_javascript_ajax)) {
+			?>
+			<script>
+				$( document ).ready(function () {
+					$('select#createbills_onebythird').on('change', function (e) {
+						if ($(this).val() === '1')
+							$('#refsupplier').parent().parent().show();
+						else
+							$('#refsupplier').parent().parent().hide();
+					});
+				});
+			</script>
+			<?php
+		}
 		print '<br>';
 		print '<div class="center">';
 		print '<input type="submit" class="button" id="createbills" name="createbills" value="'.$langs->trans('CreateInvoiceForThisCustomer').'">  ';
