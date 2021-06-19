@@ -80,14 +80,35 @@ class ActionCommReminder extends CommonObject
 		'rowid' => array('type'=>'integer', 'label'=>'TechnicalID', 'visible'=>-1, 'enabled'=>1, 'position'=>1, 'notnull'=>1, 'index'=>1, 'comment'=>"Id",),
 		'entity' => array('type'=>'integer', 'label'=>'Entity', 'visible'=>0, 'enabled'=>1, 'position'=>20, 'notnull'=>1, 'index'=>1,),
 		'dateremind' => array('type'=>'datetime', 'label'=>'DateRemind', 'visible'=>1, 'enabled'=>1, 'position'=>60, 'notnull'=>1, 'index'=>1,),
-		'typeremind' => array('type'=>'varchar(32)', 'label'=>'TypeRemind', 'visible'=>-1, 'enabled'=>1, 'position'=>55, 'notnull'=>1, 'comment'=>"email, browser, sms",),
+		'typeremind' => array('type'=>'varchar(32)', 'label'=>'TypeRemind', 'visible'=>-1, 'enabled'=>1, 'position'=>55, 'notnull'=>1, 'comment'=>"email, browser, sms, todolist",),
 		'fk_user' => array('type'=>'integer', 'label'=>'User', 'visible'=>-1, 'enabled'=>1, 'position'=>65, 'notnull'=>1, 'index'=>1,),
 		'offsetvalue' => array('type'=>'integer', 'label'=>'OffsetValue', 'visible'=>1, 'enabled'=>1, 'position'=>56, 'notnull'=>1,),
 		'offsetunit' => array('type'=>'varchar(1)', 'label'=>'OffsetUnit', 'visible'=>1, 'enabled'=>1, 'position'=>57, 'notnull'=>1, 'comment'=>"y, m, d, w, h, i",),
 		'status' => array('type'=>'integer', 'label'=>'Status', 'visible'=>1, 'enabled'=>1, 'position'=>58, 'notnull'=>1, 'default'=>0, 'index'=>0, 'arrayofkeyval'=>array('0'=>'ToDo', '1'=>'Done')),
 		'lasterror' => array('type'=>'varchar(128)', 'label'=>'LastError', 'visible'=>-1, 'enabled'=>1, 'position'=>59, 'index'=>0),
-		'fk_actioncomm' => array('type'=>'integer', 'label'=>'Project', 'visible'=>1, 'enabled'=>1, 'position'=>70, 'notnull'=>1, 'index'=>1,),
+
+		// leave empty to use ephemeral notifications
+		// TODO : fk_actioncomm => rename in fk_element and add element field
+		// 		'fk_element' => array('type'=>'integer', 'label'=>'ElementId', 'visible'=>1, 'enabled'=>1, 'position'=>70, 'notnull'=>0, 'default' => 0, 'index'=>1),
+		//		'element' => array('type' => 'varchar(60)', 'notnull' => 0, 'default' => 0, 'visible'=>1, 'enabled'=>1, 'position'=>71, 'index'=>1),
+		'fk_actioncomm' => array('type'=>'integer', 'label'=>'ActionCom', 'visible'=>1, 'enabled'=>1, 'position'=>70, 'notnull'=>1, 'index'=>1,),
 		'fk_email_template' => array('type'=>'integer', 'label'=>'EmailTemplate', 'visible'=>1, 'enabled'=>1, 'position'=>80, 'notnull'=>0),
+
+		// Used for notification without fk_actioncomm or to override actioncomm title
+		'title' => array('type' => 'varchar(255)', 'length' => 255, 'label'=>'NotificationTitle', 'visible'=>1, 'enabled'=>1, 'position'=>90, 'notnull'=>0),
+		// Used for notification without fk_email_template or to override actioncomm body
+		'body' => array('type' => 'text', 'label'=>'NotificationBody', 'visible'=>1, 'enabled'=>1, 'position'=>100, 'notnull'=>0),
+		// Url is used for Os (browser) notifications
+		'url' => array('type' => 'text', 'label'=>'NotificationUrl', 'visible'=>1, 'enabled'=>1, 'position'=>110, 'notnull'=>0),
+		// tag is used to store a code to allow programme to find others reminder like this one, (ex to remove a warning reminder, if reminder is done by another user)
+		'tag' => array('type' => 'varchar(20)', 'length' => 20, 'label'=>'NotificationTag', 'visible'=>1, 'enabled'=>1, 'position'=>120, 'notnull'=>0),
+		// icon url is used for Os (browser) notifications
+		'icon_url' => array('type' => 'text', 'label'=>'NotificationIconUrl', 'visible'=>1, 'enabled'=>1, 'position'=>130, 'notnull'=>0),
+		// This value is used to auto remove this reminder after this date, this date prevent stacking a lot of obsolete reminder (
+		'expire' => array('type' => 'date', 'label'=>'NotificationExpirationDate', 'visible'=>1, 'enabled'=>1, 'position'=>140, 'notnull'=>0)
+
+		// TODO : see if need to keep or remove because status can do same job
+		//		'sended' => array('type' => 'integer', 'notnull' => 1, 'default' => 0),
 	);
 
 	/**

@@ -554,3 +554,16 @@ create table llx_c_partnership_type
 )ENGINE=innodb;
 
 DELETE FROM llx_rights_def WHERE module = 'hrm' AND perms = 'employee';
+
+-- add subcription reminder for action comm
+CREATE TABLE llx_actioncomm_reminder_subscription (
+  rowid int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  date_creation datetime DEFAULT CURRENT_TIMESTAMP ,
+  entity int(11) NOT NULL DEFAULT '1',
+  fk_user int(11) DEFAULT '0',
+  fk_trigger varchar(60) DEFAULT NULL,
+  fk_object int(11) NOT NULL DEFAULT '0',
+  send_method varchar(60) DEFAULT NULL
+);
+
+ALTER TABLE llx_actioncomm_reminder_subscription ADD UNIQUE( fk_user, fk_trigger, fk_object, send_method);
