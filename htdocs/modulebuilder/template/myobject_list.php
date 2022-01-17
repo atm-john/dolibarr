@@ -78,6 +78,7 @@ if (!$res) {
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formlist.class.php';
 
 // load mymodule libraries
 require_once __DIR__.'/class/myobject.class.php';
@@ -114,6 +115,7 @@ $pageprev = $page - 1;
 $pagenext = $page + 1;
 
 // Initialize technical objects
+$formList = new FormList($db);
 $object = new MyObject($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->mymodule->dir_output.'/temp/massgeneration/'.$user->id;
