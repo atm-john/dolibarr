@@ -967,7 +967,7 @@ else
                     print '<tr><td><label for="state_id">'.$langs->trans('State').'</label></td><td colspan="3" class="maxwidthonsmartphone">';
                 }
 
-                print $formcompany->select_state($object->state_id, isset($_POST["country_id"])?GETPOST("country_id"):$object->country_id, 'state_id');
+                print $formcompany->select_state(GETPOSTISSET('state_id')?GETPOST('state_id', 'alpha'):$object->state_id, $object->country_code, 'state_id');
                 print '</td></tr>';
             }
 
@@ -1174,6 +1174,11 @@ else
 
             print "</form>";
         }
+    }
+
+    // Select mail models is same action as presend
+    if (GETPOST('modelselected', 'alpha')) {
+        $action = 'presend';
     }
 
     if (! empty($id) && $action != 'edit' && $action != 'create')

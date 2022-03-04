@@ -61,7 +61,7 @@ $pagenext = $page + 1;
 if (! $sortorder) $sortorder="DESC";
 if (! $sortfield) $sortfield="f.datef";
 
-$search_month = GETPOST('search_month', 'aplha');
+$search_month = GETPOST('search_month', 'alpha');
 $search_year = GETPOST('search_year', 'int');
 
 if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter', 'alpha')) {
@@ -225,7 +225,7 @@ if ($id > 0 || ! empty($ref))
                 print_liste_field_titre("CustomerCode", $_SERVER["PHP_SELF"], "s.code_client", "", $option, '', $sortfield, $sortorder);
                 print_liste_field_titre("DateInvoice", $_SERVER["PHP_SELF"], "f.datef", "", $option, 'align="center"', $sortfield, $sortorder);
                 print_liste_field_titre("Qty", $_SERVER["PHP_SELF"], "d.qty", "", $option, 'align="center"', $sortfield, $sortorder);
-                print_liste_field_titre("AmountHT", $_SERVER["PHP_SELF"], "f.total", "", $option, 'align="right"', $sortfield, $sortorder);
+                print_liste_field_titre("AmountHT", $_SERVER["PHP_SELF"], "d.total_ht", "", $option, 'align="right"', $sortfield, $sortorder);
                 print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "f.paye,f.fk_statut", "", $option, 'align="right"', $sortfield, $sortorder);
                 print "</tr>\n";
 
@@ -234,9 +234,9 @@ if ($id > 0 || ! empty($ref))
                     while ($i < min($num, $limit))
 					{
                         $objp = $db->fetch_object($result);
-						
+
 						if ($objp->type == Facture::TYPE_CREDIT_NOTE) $objp->qty=-($objp->qty);
-						
+
                         $total_ht+=$objp->total_ht;
                         $total_qty+=$objp->qty;
 

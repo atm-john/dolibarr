@@ -48,7 +48,7 @@ if (defined('THEME_ONLY_CONSTANT')) return;
 session_cache_limiter('public');
 
 
-require_once '../../main.inc.php';
+require_once __DIR__.'/../../main.inc.php'; // __DIR__ allow this script to be included in custom themes
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 
 // Load user to have $user->conf loaded (not done into main because of NOLOGIN constant defined)
@@ -923,7 +923,8 @@ div.fiche>form>div.div-table-responsive {
     flex-grow: 1;
     flex-shrink: 1;
     /* flex-basis: 140px; */
-    min-width: 150px;
+    /* min-width: 150px; */
+    width: 158px;
     justify-content: flex-start;
     align-self: flex-start;
 }

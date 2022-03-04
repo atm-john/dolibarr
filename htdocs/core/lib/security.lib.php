@@ -1,6 +1,7 @@
 <?php
 /* Copyright (C) 2008-2011 Laurent Destailleur  <eldy@users.sourceforge.net>
  * Copyright (C) 2008-2017 Regis Houssin        <regis.houssin@inodbox.com>
+ * Copyright (C) 2020	   Ferran Marcet        <fmarcet@2byte.es>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,7 +123,7 @@ function dol_hash($chain, $type = '0')
 	}
 
 	// Salt value
-	if (! empty($conf->global->MAIN_SECURITY_SALT)) $chain=$conf->global->MAIN_SECURITY_SALT.$chain;
+	if (! empty($conf->global->MAIN_SECURITY_SALT) && $type != '4' && $type !== 'md5openldap') $chain = $conf->global->MAIN_SECURITY_SALT.$chain;
 
 	if ($type == '1' || $type == 'sha1') return sha1($chain);
 	elseif ($type == '2' || $type == 'sha1md5') return sha1(md5($chain));
@@ -555,6 +556,18 @@ function checkUserAccessToObject($user, $featuresarray, $objectid = 0, $tableand
 				$sql.= " FROM ".MAIN_DB_PREFIX.$dbtablename." as dbt";
 				$sql.= " WHERE dbt.".$dbt_select." IN (".$objectid.")";
 				$sql.= " AND dbt.entity IN (".getEntity($sharedelement, 1).")";
+			}
+
+			if ($feature == 'agenda')// Also check myactions rights
+			{
+				if ($objectid > 0 && empty($user->rights->agenda->allactions->read)) {
+					require_once DOL_DOCUMENT_ROOT . '/comm/action/class/actioncomm.class.php';
+					$action = new ActionComm($db);
+					$action->fetch($objectid);
+					if ($action->authorid != $user->id && $action->userownerid != $user->id && !(array_key_exists($user->id, $action->userassigned))) {
+						return false;
+					}
+				}
 			}
 		}
 		elseif (in_array($feature, $checkproject))

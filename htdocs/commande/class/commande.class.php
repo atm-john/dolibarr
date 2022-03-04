@@ -3,7 +3,7 @@
  * Copyright (C) 2004-2012 Laurent Destailleur  <eldy@users.sourceforge.net>
  * Copyright (C) 2005-2014 Regis Houssin        <regis.houssin@inodbox.com>
  * Copyright (C) 2006      Andre Cianfarani     <acianfa@free.fr>
- * Copyright (C) 2010-2016 Juanjo Menent        <jmenent@2byte.es>
+ * Copyright (C) 2010-2020 Juanjo Menent        <jmenent@2byte.es>
  * Copyright (C) 2011      Jean Heimburger      <jean@tiaris.info>
  * Copyright (C) 2012-2014 Christophe Battarel  <christophe.battarel@altairis.fr>
  * Copyright (C) 2012      Cedric Salvador      <csalvador@gpcsolutions.fr>
@@ -936,6 +936,7 @@ class Commande extends CommonOrder
 						if ($result != self::STOCK_NOT_ENOUGH_FOR_ORDER)
 						{
 							$this->error=$this->db->lasterror();
+							$this->errors[] = $this->error;
 							dol_print_error($this->db);
 						}
 						$this->db->rollback();
@@ -1412,7 +1413,8 @@ class Commande extends CommonOrder
 				if (! empty($conf->global->STOCK_MUST_BE_ENOUGH_FOR_ORDER) && $product_type == 0 && $product->stock_reel < $qty)
 				{
 					$langs->load("errors");
-					$this->error=$langs->trans('ErrorStockIsNotEnoughToAddProductOnOrder', $product->ref);
+					$this->error = $langs->trans('ErrorStockIsNotEnoughToAddProductOnOrder', $product->ref);
+					$this->errors[] = $this->error;
 					dol_syslog(get_class($this)."::addline error=Product ".$product->ref.": ".$this->error, LOG_ERR);
 					$this->db->rollback();
 					return self::STOCK_NOT_ENOUGH_FOR_ORDER;
@@ -3053,7 +3055,8 @@ class Commande extends CommonOrder
 				if (! empty($conf->global->STOCK_MUST_BE_ENOUGH_FOR_ORDER) && $product_type == 0 && $product->stock_reel < $qty)
 				{
 					$langs->load("errors");
-					$this->error=$langs->trans('ErrorStockIsNotEnoughToAddProductOnOrder', $product->ref);
+					$this->error = $langs->trans('ErrorStockIsNotEnoughToAddProductOnOrder', $product->ref);
+					$this->errors[] = $this->error;
 					dol_syslog(get_class($this)."::addline error=Product ".$product->ref.": ".$this->error, LOG_ERR);
 					$this->db->rollback();
 					return self::STOCK_NOT_ENOUGH_FOR_ORDER;
@@ -3324,6 +3327,11 @@ class Commande extends CommonOrder
 
 		if (! $error)
 		{
+			// On delete ecm_files database info
+			if (!$this->deleteEcmFiles()) {
+				$this->db->rollback();
+				return 0;
+			}
 			// Remove directory with files
 			$comref = dol_sanitizeFileName($this->ref);
 			if ($conf->commande->dir_output && !empty($this->ref))

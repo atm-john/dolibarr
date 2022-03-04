@@ -141,13 +141,15 @@ if ($action == 'validatehistory') {
 		setEventMessages($db->lasterror(), null, 'errors');
 	} else {
 		$num_lines = $db->num_rows($result);
-		
-		$isSellerInEEC = isInEEC($mysoc);
-		
+
+		$isBuyerInEEC = isInEEC($mysoc);
+
 		$i = 0;
 		while ($i < min($num_lines, 10000)) {	// No more than 10000 at once
 			$objp = $db->fetch_object($result);
-			
+
+			$isSellerInEEC = isInEEC($objp);
+
 			// Search suggested account for product/service
 			$suggestedaccountingaccountfor = '';
 			if (($objp->country_code == $mysoc->country_code) || empty($objp->country_code)) {  // If buyer in same country than seller (if not defined, we assume it is same country)
@@ -169,13 +171,13 @@ if ($action == 'validatehistory') {
 					$suggestedaccountingaccountfor = 'export';
 				}
 			}
-			
+
 			if ($objp->aarowid_suggest > 0)
 			{
 				$sqlupdate = "UPDATE " . MAIN_DB_PREFIX . "facture_fourn_det";
 				$sqlupdate.= " SET fk_code_ventilation = ".$objp->aarowid_suggest;
 				$sqlupdate.= " WHERE fk_code_ventilation <= 0 AND product_type <= 2 AND rowid = ".$objp->rowid;
-				
+
 				$resqlupdate = $db->query($sqlupdate);
 				if (! $resqlupdate)
 				{
@@ -184,11 +186,11 @@ if ($action == 'validatehistory') {
 					break;
 				}
 			}
-			
+
 			$i++;
 		}
 	}
-	
+
 	if ($error)
 	{
 		$db->rollback();
@@ -248,6 +250,7 @@ $sql .= "  LEFT JOIN " . MAIN_DB_PREFIX . "accounting_account as aa ON aa.rowid 
 $sql .= " WHERE ff.datef >= '" . $db->idate($search_date_start) . "'";
 $sql .= "  AND ff.datef <= '" . $db->idate($search_date_end) . "'";
 $sql .= "  AND ff.fk_statut > 0";
+$sql .= "  AND ffd.product_type <= 2";
 $sql .= " AND ff.entity IN (" . getEntity('facture_fourn', 0) . ")";     // We don't share object for accountancy
 $sql .= " AND aa.account_number IS NULL";
 $sql .= " GROUP BY ffd.fk_code_ventilation,aa.account_number,aa.label";
@@ -319,6 +322,7 @@ $sql .= "  LEFT JOIN " . MAIN_DB_PREFIX . "accounting_account as aa ON aa.rowid 
 $sql .= " WHERE ff.datef >= '" . $db->idate($search_date_start) . "'";
 $sql .= "  AND ff.datef <= '" . $db->idate($search_date_end) . "'";
 $sql .= "  AND ff.fk_statut > 0";
+$sql .= "  AND ffd.product_type <= 2";
 $sql .= " AND ff.entity IN (" . getEntity('facture_fourn', 0) . ")";     // We don't share object for accountancy
 $sql .= " AND aa.account_number IS NOT NULL";
 $sql .= " GROUP BY ffd.fk_code_ventilation,aa.account_number,aa.label";
@@ -390,6 +394,7 @@ if ($conf->global->MAIN_FEATURES_LEVEL > 0) // This part of code looks strange. 
     $sql .= " WHERE ff.datef >= '" . $db->idate($search_date_start) . "'";
     $sql .= "  AND ff.datef <= '" . $db->idate($search_date_end) . "'";
     $sql .= "  AND ff.fk_statut > 0";
+	$sql .= "  AND ffd.product_type <= 2";
     $sql .= " AND ff.entity IN (" . getEntity('facture_fourn', 0) . ")";     // We don't share object for accountancy
 
     dol_syslog('htdocs/accountancy/supplier/index.php');

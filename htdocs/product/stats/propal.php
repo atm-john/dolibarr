@@ -60,7 +60,7 @@ $pagenext = $page + 1;
 if (! $sortorder) $sortorder = "DESC";
 if (! $sortfield) $sortfield = "p.datep";
 
-$search_month = GETPOST('search_month', 'aplha');
+$search_month = GETPOST('search_month', 'alpha');
 $search_year = GETPOST('search_year', 'int');
 
 if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter', 'alpha')) {
@@ -208,7 +208,7 @@ if ($id > 0 || ! empty($ref))
 				print_liste_field_titre("Company", $_SERVER["PHP_SELF"], "s.nom", "", $option, '', $sortfield, $sortorder);
 				print_liste_field_titre("DatePropal", $_SERVER["PHP_SELF"], "p.datep", "", $option, 'align="center"', $sortfield, $sortorder);
 				print_liste_field_titre("Qty", $_SERVER["PHP_SELF"], "d.qty", "", $option, 'align="center"', $sortfield, $sortorder);
-				print_liste_field_titre("AmountHT", $_SERVER["PHP_SELF"], "p.total", "", $option, 'align="right"', $sortfield, $sortorder);
+				print_liste_field_titre("AmountHT", $_SERVER["PHP_SELF"], "d.total_ht", "", $option, 'align="right"', $sortfield, $sortorder);
 				print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "p.fk_statut", "", $option, 'align="right"', $sortfield, $sortorder);
 				print "</tr>\n";
 

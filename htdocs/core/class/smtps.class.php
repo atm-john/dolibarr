@@ -428,7 +428,7 @@ class SMTPs
         $host=preg_replace('@ssl://@i', '', $host);	// Remove prefix
         $host=preg_replace('@tls://@i', '', $host);	// Remove prefix
 
-        if ($usetls) $host='tls://'.$host;
+		if ($usetls && ! empty($conf->global->MAIN_SMTPS_ADD_TLS_TO_HOST_FOR_HELO)) $host = 'tls://'.$host;
 
         $hosth = $host;
 
@@ -505,8 +505,9 @@ class SMTPs
 
             // The error here just means the ID/password combo doesn't work.
             // There is not a method to determine which is the problem, ID or password
-            if ( ! $_retVal = $this->socket_send_str(base64_encode($this->_smtpsPW), '235') )
-            $this->_setErr(130, 'Invalid Authentication Credentials.');
+            if (! $_retVal = $this->socket_send_str(base64_encode($this->_smtpsPW), '235')) {
+            	$this->_setErr(130, 'Invalid Authentication Credentials.');
+            }
         }
         else
         {
@@ -554,6 +555,8 @@ class SMTPs
                 $host=preg_replace('@ssl://@i', '', $host);	// Remove prefix
                 $host=preg_replace('@tls://@i', '', $host);	// Remove prefix
 
+                if ($usetls && ! empty($conf->global->MAIN_SMTPS_ADD_TLS_TO_HOST_FOR_HELO)) $host = 'tls://'.$host;
+
                 $hosth = $host;
 
                 if (! empty($conf->global->MAIL_SMTP_USE_FROM_FOR_HELO))
@@ -574,7 +577,11 @@ class SMTPs
                 // From this point onward most server response codes should be 250
                 // Specify who the mail is from....
                 // This has to be the raw email address, strip the "name" off
-                $this->socket_send_str('MAIL FROM: ' . $this->getFrom('addr'), '250');
+                $resultmailfrom = $this->socket_send_str('MAIL FROM: ' . $this->getFrom('addr'), '250');
+			    if (! $resultmailfrom) {
+			        fclose($this->socket);
+			        return false;
+			    }
 
                 // 'RCPT TO:' must be given a single address, so this has to loop
                 // through the list of addresses, regardless of TO, CC or BCC
@@ -1785,6 +1792,7 @@ class SMTPs
                 $_retVal = false;
                 break;
             }
+			$this->log .= $server_response;
             $limit++;
         }
 

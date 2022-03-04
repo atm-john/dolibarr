@@ -7,7 +7,7 @@
  * Copyright (C) 2005-2014 Regis Houssin         <regis.houssin@inodbox.com>
  * Copyright (C) 2006      Andre Cianfarani      <acianfa@free.fr>
  * Copyright (C) 2007      Franky Van Liedekerke <franky.van.liedekerke@telenet.be>
- * Copyright (C) 2010-2016 Juanjo Menent         <jmenent@2byte.es>
+ * Copyright (C) 2010-2020 Juanjo Menent         <jmenent@2byte.es>
  * Copyright (C) 2012-2014 Christophe Battarel   <christophe.battarel@altairis.fr>
  * Copyright (C) 2012-2015 Marcos García         <marcosgdf@gmail.com>
  * Copyright (C) 2012      Cédric Salvador       <csalvador@gpcsolutions.fr>
@@ -363,7 +363,7 @@ class Facture extends CommonInvoice
 			$this->fk_project        = GETPOST('projectid', 'int') > 0 ? ((int) GETPOST('projectid', 'int')) : $_facrec->fk_project;
 			$this->note_public       = GETPOST('note_public', 'none') ? GETPOST('note_public', 'none') : $_facrec->note_public;
 			$this->note_private      = GETPOST('note_private', 'none') ? GETPOST('note_private', 'none') : $_facrec->note_private;
-			$this->modelpdf          = GETPOST('model', 'alpha') ? GETPOST('model', 'apha') : $_facrec->modelpdf;
+			$this->modelpdf          = GETPOST('model', 'alpha') ? GETPOST('model', 'alpha') : $_facrec->modelpdf;
 			$this->cond_reglement_id = GETPOST('cond_reglement_id', 'int') > 0 ? ((int) GETPOST('cond_reglement_id', 'int')) : $_facrec->cond_reglement_id;
 			$this->mode_reglement_id = GETPOST('mode_reglement_id', 'int') > 0 ? ((int) GETPOST('mode_reglement_id', 'int')) : $_facrec->mode_reglement_id;
 			$this->fk_account        = GETPOST('fk_account') > 0 ? ((int) GETPOST('fk_account')) : $_facrec->fk_account;
@@ -445,7 +445,16 @@ class Facture extends CommonInvoice
 		}
 
 		// Define due date if not already defined
-		$datelim=(empty($forceduedate)?$this->calculate_date_lim_reglement():$forceduedate);
+        if (empty($forceduedate)) {
+            $duedate = $this->calculate_date_lim_reglement();
+            /*if ($duedate < 0) {	Regression, a date can be negative if before 1970.
+                dol_syslog(__METHOD__ . ' Error in calculate_date_lim_reglement. We got ' . $duedate, LOG_ERR);
+                return -1;
+            }*/
+            $this->date_lim_reglement = $duedate;
+        } else {
+            $this->date_lim_reglement = $forceduedate;
+        }
 
 		// Insert into database
 		$socid  = $this->socid;
@@ -497,7 +506,7 @@ class Facture extends CommonInvoice
 		$sql.= ", ".($this->fk_project?$this->fk_project:"null");
 		$sql.= ", ".$this->cond_reglement_id;
 		$sql.= ", ".$this->mode_reglement_id;
-		$sql.= ", '".$this->db->idate($datelim)."', '".$this->db->escape($this->modelpdf)."'";
+		$sql.= ", '".$this->db->idate($this->date_lim_reglement)."', '".$this->db->escape($this->modelpdf)."'";
 		$sql.= ", ".($this->situation_cycle_ref?"'".$this->db->escape($this->situation_cycle_ref)."'":"null");
 		$sql.= ", ".($this->situation_counter?"'".$this->db->escape($this->situation_counter)."'":"null");
 		$sql.= ", ".($this->situation_final?$this->situation_final:0);
@@ -1575,7 +1584,8 @@ class Facture extends CommonInvoice
 	}
 
 	/**
-	 * Fetch previous and next situations invoices
+	 * Fetch previous and next situations invoices.
+	 * Return all previous and next invoices (both standard and credit notes).
 	 *
 	 * @return	void
 	 */
@@ -1586,7 +1596,7 @@ class Facture extends CommonInvoice
 		$this->tab_previous_situation_invoice = array();
 		$this->tab_next_situation_invoice = array();
 
-		$sql = 'SELECT rowid, situation_counter FROM '.MAIN_DB_PREFIX.'facture WHERE rowid <> '.$this->id.' AND entity = '.$conf->entity.' AND situation_cycle_ref = '.(int) $this->situation_cycle_ref.' ORDER BY situation_counter ASC';
+		$sql = 'SELECT rowid, type, situation_cycle_ref, situation_counter FROM '.MAIN_DB_PREFIX.'facture WHERE rowid <> '.$this->id.' AND entity = '.$conf->entity.' AND situation_cycle_ref = '.(int) $this->situation_cycle_ref.' ORDER BY situation_counter ASC';
 
 		dol_syslog(get_class($this).'::fetchPreviousNextSituationInvoice ', LOG_DEBUG);
 		$result = $this->db->query($sql);
@@ -1652,7 +1662,7 @@ class Facture extends CommonInvoice
 		$sql.= " datef=".(strval($this->date)!='' ? "'".$this->db->idate($this->date)."'" : 'null').",";
 		$sql.= " date_pointoftax=".(strval($this->date_pointoftax)!='' ? "'".$this->db->idate($this->date_pointoftax)."'" : 'null').",";
 		$sql.= " date_valid=".(strval($this->date_validation)!='' ? "'".$this->db->idate($this->date_validation)."'" : 'null').",";
-		$sql.= " paye=".(isset($this->paye)?$this->db->escape($this->paye):"null").",";
+		$sql.= " paye=".(isset($this->paye)?$this->db->escape($this->paye):0).",";
 		$sql.= " remise_percent=".(isset($this->remise_percent)?$this->db->escape($this->remise_percent):"null").",";
 		$sql.= " remise_absolue=".(isset($this->remise_absolue)?$this->db->escape($this->remise_absolue):"null").",";
 		$sql.= " close_code=".(isset($this->close_code)?"'".$this->db->escape($this->close_code)."'":"null").",";
@@ -2009,6 +2019,12 @@ class Facture extends CommonInvoice
 				$resql=$this->db->query($sql);
 				if ($resql)
 				{
+					// On delete ecm_files database info
+					if (!$this->deleteEcmFiles()) {
+						$this->db->rollback();
+						return 0;
+					}
+
 					// On efface le repertoire de pdf provisoire
 					$ref = dol_sanitizeFileName($this->ref);
 					if ($conf->facture->dir_output && !empty($this->ref))
@@ -3893,6 +3909,7 @@ class Facture extends CommonInvoice
 
 				if ($generic_facture->hasDelay()) {
 					$response->nbtodolate++;
+					$response->url_late=DOL_URL_ROOT.'/compta/facture/list.php?search_option=late&mainmenu=billing&leftmenu=customers_bills';
 				}
 			}
 
@@ -5003,8 +5020,7 @@ class FactureLigne extends CommonInvoiceLine
 
 				$returnPercent = floatval($res['situation_percent']);
 
-				if($include_credit_note) {
-
+				if ($include_credit_note) {
 				    $sql = 'SELECT fd.situation_percent FROM ' . MAIN_DB_PREFIX . 'facturedet fd';
 				    $sql.= ' JOIN ' . MAIN_DB_PREFIX . 'facture f ON (f.rowid = fd.fk_facture) ';
 				    $sql.= ' WHERE fd.fk_prev_id =' . $this->fk_prev_id;
@@ -5016,6 +5032,8 @@ class FactureLigne extends CommonInvoiceLine
 				        while($obj = $this->db->fetch_object($res)) {
 				            $returnPercent = $returnPercent + floatval($obj->situation_percent);
 				        }
+				    } else {
+				    	dol_print_error($this->db);
 				    }
 				}
 

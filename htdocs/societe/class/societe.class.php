@@ -769,7 +769,7 @@ class Societe extends CommonObject
 						}
 					}
 
-					// Check for mandatory prof id (but only if country is other than ours)
+					// Check for mandatory prof id (but only if country is same than ours)
 					if ($mysoc->country_id > 0 && $this->country_id == $mysoc->country_id)
 					{
 						$idprof_mandatory ='SOCIETE_'.$key.'_MANDATORY';
@@ -1287,7 +1287,7 @@ class Societe extends CommonObject
 		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'c_departements as d ON s.fk_departement = d.rowid';
 		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'c_typent as te ON s.fk_typent = te.id';
 		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'c_incoterms as i ON s.fk_incoterms = i.rowid';
-		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe_remise as sr ON sr.rowid = (SELECT MAX(rowid) FROM '.MAIN_DB_PREFIX.'societe_remise WHERE fk_soc = s.rowid AND entity = '.$conf->entity.')';
+		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe_remise as sr ON sr.rowid = (SELECT MAX(rowid) FROM '.MAIN_DB_PREFIX.'societe_remise WHERE fk_soc = s.rowid AND entity IN ('.getEntity('discount').'))';
 
 		$sql .= ' WHERE s.entity IN ('.getEntity($this->element).')';
 		if ($rowid)     $sql .= ' AND s.rowid = '.$rowid;
@@ -3284,6 +3284,12 @@ class Societe extends CommonObject
 		// Define if third party is treated as company (or not) when nature is unknown
 		$isacompany=empty($conf->global->MAIN_UNKNOWN_CUSTOMERS_ARE_COMPANIES)?0:1; // 0 by default
 		if (! empty($this->tva_intra)) $isacompany=1;
+		elseif (! empty($this->idprof1)) $isacompany=1;
+		elseif (! empty($this->idprof2)) $isacompany=1;
+		elseif (! empty($this->idprof3)) $isacompany=1;
+		elseif (! empty($this->idprof4)) $isacompany=1;
+		elseif (! empty($this->idprof5)) $isacompany=1;
+		elseif (! empty($this->idprof6)) $isacompany=1;
 		elseif (! empty($this->typent_code) && $this->typent_code != 'TE_UNKNOWN')
 		{
 			// TODO Add a field is_a_company into dictionary
@@ -3396,6 +3402,7 @@ class Societe extends CommonObject
 		$this->twitter=$member->twitter;
 		$this->facebook=$member->facebook;
 		$this->linkedin=$member->linkedin;
+		$this->entity=$member->entity;
 
 		$this->client = 1;				// A member is a customer by default
 		$this->code_client = ($customercode?$customercode:-1);
@@ -4126,9 +4133,10 @@ class Societe extends CommonObject
 	 * Sets sales representatives of the thirdparty
 	 *
 	 * @param 	int[]|int 	$salesrep	 	User ID or array of user IDs
+	 * @param   bool        $onlyAdd        Only add (no delete before)
 	 * @return	int							<0 if KO, >0 if OK
 	 */
-	public function setSalesRep($salesrep)
+	public function setSalesRep($salesrep, $onlyAdd = false)
 	{
 		global $user;
 
@@ -4137,16 +4145,18 @@ class Societe extends CommonObject
 			$salesrep = array($salesrep);
 		}
 
-		// Get current users
-		$existing = $this->getSalesRepresentatives($user, 1);
 
-		// Diff
-		if (is_array($existing)) {
-			$to_del = array_diff($existing, $salesrep);
-			$to_add = array_diff($salesrep, $existing);
-		} else {
-			$to_del = array(); // Nothing to delete
-			$to_add = $salesrep;
+		$to_del = array(); // Nothing to delete
+		$to_add = $salesrep;
+		if ($onlyAdd === false) {
+			// Get current users
+			$existing = $this->getSalesRepresentatives($user, 1);
+
+			// Diff
+			if (is_array($existing)) {
+				$to_del = array_diff($existing, $salesrep);
+				$to_add = array_diff($salesrep, $existing);
+			}
 		}
 
 		$error = 0;

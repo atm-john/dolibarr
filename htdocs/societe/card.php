@@ -539,7 +539,7 @@ if (empty($reshook))
 
 					// Links with users
 					$salesreps = GETPOST('commercial', 'array');
-					$result = $object->setSalesRep($salesreps);
+					$result = $object->setSalesRep($salesreps, true);
 					if ($result < 0)
 					{
 						$error++;
@@ -846,6 +846,11 @@ if (empty($reshook))
     $id=$socid;
     $object->fetch($socid);
 
+	// Selection of new fields
+	if (!empty($conf->global->MAIN_DUPLICATE_CONTACTS_TAB_ON_MAIN_CARD) && (empty($conf->global->SOCIETE_DISABLE_CONTACTS) || !empty($conf->global->SOCIETE_ADDRESSES_MANAGEMENT))) {
+		include DOL_DOCUMENT_ROOT . '/core/actions_changeselectedfields.inc.php';
+	}
+
     // Actions to send emails
     $trigger_name='COMPANY_SENTBYMAIL';
     $paramname='socid';
@@ -950,6 +955,7 @@ else
         if (! empty($conf->fournisseur->enabled) && (GETPOST("type")=='f' || (GETPOST("type")=='' && ! empty($conf->global->THIRDPARTY_SUPPLIER_BY_DEFAULT))))  { $object->fournisseur=1; }
 
         $object->name				= GETPOST('name', 'alpha');
+        $object->name_alias			= GETPOST('name_alias', 'alpha');
         $object->firstname			= GETPOST('firstname', 'alpha');
         $object->particulier		= $private;
         $object->prefix_comm		= GETPOST('prefix_comm', 'alpha');

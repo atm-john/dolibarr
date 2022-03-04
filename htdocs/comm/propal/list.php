@@ -958,9 +958,7 @@ if ($resql)
 				$nbofsalesrepresentative=count($listsalesrepresentatives);
 				if ($nbofsalesrepresentative > 3)   // We print only number
 				{
-					print '<a href="'.DOL_URL_ROOT.'/societe/commerciaux.php?socid='.$companystatic->id.'">';
 					print $nbofsalesrepresentative;
-					print '</a>';
 				}
 				elseif ($nbofsalesrepresentative > 0)
 				{
@@ -996,7 +994,7 @@ if ($resql)
 		// Extra fields
 		include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_print_fields.tpl.php';
 		// Fields from hook
-		$parameters=array('arrayfields'=>$arrayfields, 'obj'=>$obj);
+		$parameters=array('arrayfields'=>$arrayfields, 'obj'=>$obj, 'i'=>$i);
 		$reshook=$hookmanager->executeHooks('printFieldListValue', $parameters);    // Note that $action and $object may have been modified by hook
 		print $hookmanager->resPrint;
 		// Date creation

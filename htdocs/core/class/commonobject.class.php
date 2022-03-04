@@ -1,7 +1,7 @@
 <?php
 /* Copyright (C) 2006-2015 Laurent Destailleur  <eldy@users.sourceforge.net>
  * Copyright (C) 2005-2013 Regis Houssin        <regis.houssin@inodbox.com>
- * Copyright (C) 2010-2015 Juanjo Menent        <jmenent@2byte.es>
+ * Copyright (C) 2010-2020 Juanjo Menent        <jmenent@2byte.es>
  * Copyright (C) 2012-2013 Christophe Battarel  <christophe.battarel@altairis.fr>
  * Copyright (C) 2011-2019 Philippe Grand       <philippe.grand@atoo-net.com>
  * Copyright (C) 2012-2015 Marcos García        <marcosgdf@gmail.com>
@@ -2807,8 +2807,8 @@ abstract class CommonObject
 
 		$sql = 'SELECT rowid, qty, '.$fieldup.' as up, remise_percent, total_ht, '.$fieldtva.' as total_tva, total_ttc, '.$fieldlocaltax1.' as total_localtax1, '.$fieldlocaltax2.' as total_localtax2,';
 		$sql.= ' tva_tx as vatrate, localtax1_tx, localtax2_tx, localtax1_type, localtax2_type, info_bits, product_type';
-			if ($this->table_element_line == 'facturedet') $sql.= ', situation_percent';
-			$sql.= ', multicurrency_total_ht, multicurrency_total_tva, multicurrency_total_ttc';
+		if ($this->table_element_line == 'facturedet') $sql.= ', situation_percent';
+		$sql.= ', multicurrency_total_ht, multicurrency_total_tva, multicurrency_total_ttc';
 		$sql.= ' FROM '.MAIN_DB_PREFIX.$this->table_element_line;
 		$sql.= ' WHERE '.$this->fk_element.' = '.$this->id;
 		if ($exclspec)
@@ -2847,18 +2847,23 @@ abstract class CommonObject
 
 				if (empty($reshook) && $forcedroundingmode == '0')	// Check if data on line are consistent. This may solve lines that were not consistent because set with $forcedroundingmode='auto'
 				{
+					// This part of code is to fix data. We should not call it too often.
 					$localtax_array=array($obj->localtax1_type,$obj->localtax1_tx,$obj->localtax2_type,$obj->localtax2_tx);
 					$tmpcal=calcul_price_total($obj->qty, $obj->up, $obj->remise_percent, $obj->vatrate, $obj->localtax1_tx, $obj->localtax2_tx, 0, 'HT', $obj->info_bits, $obj->product_type, $seller, $localtax_array, (isset($obj->situation_percent) ? $obj->situation_percent : 100), $multicurrency_tx);
-					$diff=price2num($tmpcal[1] - $obj->total_tva, 'MT', 1);
-					if ($diff)
+
+					$diff_when_using_price_ht=price2num($tmpcal[1] - $obj->total_tva, 'MT', 1);	// If price was set with tax price adn unit price HT has a low number of digits, then we may have a diff on recalculation from unit price HT.
+					$diff_on_current_total=price2num($obj->total_ttc - $obj->total_ht - $obj->total_tva - $obj->total_localtax1 - $obj->total_localtax2, 'MT', 1);
+					//var_dump($obj->total_ht.' '.$obj->total_tva.' '.$obj->total_localtax1.' '.$obj->total_localtax2.' =? '.$obj->total_ttc);
+					//var_dump($diff_when_using_price_ht.' '.$diff_on_current_total);
+
+					if ($diff_when_using_price_ht && $diff_on_current_total)
 					{
 						$sqlfix="UPDATE ".MAIN_DB_PREFIX.$this->table_element_line." SET ".$fieldtva." = ".$tmpcal[1].", total_ttc = ".$tmpcal[2]." WHERE rowid = ".$obj->rowid;
-						dol_syslog('We found unconsistent data into detailed line (difference of '.$diff.') for line rowid = '.$obj->rowid." (total vat of line calculated=".$tmpcal[1].", database=".$obj->total_tva."). We fix the total_vat and total_ttc of line by running sqlfix = ".$sqlfix);
-								$resqlfix=$this->db->query($sqlfix);
-								if (! $resqlfix) dol_print_error($this->db, 'Failed to update line');
-								$obj->total_tva = $tmpcal[1];
-								$obj->total_ttc = $tmpcal[2];
-						//
+						dol_syslog('We found unconsistent data into detailed line (diff_when_using_price_ht = '.$diff_when_using_price_ht.' and diff_on_current_total = '.$diff_on_current_total.') for line rowid = '.$obj->rowid." (total vat of line calculated=".$tmpcal[1].", database=".$obj->total_tva."). We fix the total_vat and total_ttc of line by running sqlfix = ".$sqlfix, LOG_WARNING);
+						$resqlfix=$this->db->query($sqlfix);
+						if (! $resqlfix) dol_print_error($this->db, 'Failed to update line');
+						$obj->total_tva = $tmpcal[1];
+						$obj->total_ttc = $tmpcal[2];
 					}
 				}
 
@@ -5932,7 +5937,8 @@ abstract class CommonObject
 		{
 			$param_list=array_keys($param['options']);				// $param_list='ObjectName:classPath'
 			$showempty=(($required && $default != '')?0:1);
-			$out=$form->selectForForms($param_list[0], $keyprefix.$key.$keysuffix, $value, $showempty);
+			$out=$form->selectForForms($param_list[0], $keyprefix.$key.$keysuffix, $value, $showempty, '', '', $morecss, $moreparam);
+
 			if ($conf->global->MAIN_FEATURES_LEVEL >= 2)
 			{
             			list($class,$classfile)=explode(':', $param_list[0]);
@@ -6562,6 +6568,9 @@ abstract class CommonObject
 								var parent = $(this).find("option[parent]:first").attr("parent");
 								var infos = parent.split(":");
 								var parent_list = infos[0];
+								showOptions(child_list, parent_list);
+
+								/* Activate the handler to call showOptions on each future change */
 								$("select[name=\""+parent_list+"\"]").change(function() {
 									showOptions(child_list, parent_list);
 								});
@@ -7728,4 +7737,48 @@ abstract class CommonObject
             }
         }
     }
+
+	/**
+	 * Delete related files of object in database
+	 *
+	 * @return bool
+	 */
+	public function deleteEcmFiles()
+	{
+		global $conf;
+		$this->db->begin();
+
+		switch ($this->element){
+			case 'propal':
+				$element = 'propale';
+				break;
+			case 'product':
+				$element = 'produit';
+				break;
+			case 'order_supplier':
+				$element ='fournisseur/commande';
+				break;
+			case 'invoice_supplier':
+				$element = 'fournisseur/facture/' . get_exdir($this->id, 2, 0, 1, $this, 'invoice_supplier');
+				break;
+			case 'shipping':
+				$element = 'expedition/sending';
+				break;
+			default:
+				$element = $this->element;
+		}
+
+		$sql = "DELETE FROM ".MAIN_DB_PREFIX."ecm_files";
+		$sql.= " WHERE filename LIKE '".$this->db->escape($this->ref)."%'";
+		$sql.= " AND filepath = '".$element."/".$this->db->escape($this->ref)."' AND entity = ".$conf->entity;
+
+		if (!$this->db->query($sql)) {
+			$this->error = $this->db->lasterror();
+			$this->db->rollback();
+			return false;
+		}
+
+		$this->db->commit();
+		return true;
+	}
 }

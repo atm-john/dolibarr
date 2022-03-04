@@ -1226,7 +1226,7 @@ function dol_get_fiche_head($links = array(), $active = '', $title = '', $notab 
 		$tabsname=str_replace("@", "", $picto);
 		$out.='<div id="moretabs'.$tabsname.'" class="inline-block tabsElem">';
 		$out.='<a href="#" class="tab moretab inline-block tabunactive reposition">'.$langs->trans("More").'... ('.$nbintab.')</a>';
-		$out.='<div id="moretabsList'.$tabsname.'" style="position: absolute; '.$left.': -999em; text-align: '.$left.'; margin:0px; padding:2px">';
+		$out.='<div id="moretabsList'.$tabsname.'" style="position: absolute; '.$left.': -999em; text-align: '.$left.'; margin:0px; padding:2px; z-index:10;">';
 		$out.=$outmore;
 		$out.='</div>';
 		$out.='<div></div>';
@@ -1651,7 +1651,7 @@ function dol_format_address($object, $withcountry = 0, $sep = "\n", $outputlangs
 	{
 		$ret .= ($ret ? $sep : '' ).$object->zip;
 		$ret .= ($object->town?(($object->zip?' ':'').$object->town):'');
-		$ret .= ($object->state_id?(' ('.($object->state_id).')'):'');
+		$ret .= ($object->state_code?(' ('.($object->state_code).')'):'');
 	}
 	else                                        		// Other: title firstname name \n address lines \n zip town \n country
 	{
@@ -1787,6 +1787,7 @@ function dol_print_date($time, $format = '', $tzoutput = 'tzserver', $outputlang
 		$format=str_replace('%a', '__a__', $format);
 		$format=str_replace('%A', '__A__', $format);
 	}
+
 
 	// Analyze date
 	$reg=array();
@@ -4520,7 +4521,6 @@ function price2num($amount, $rounding = '', $alreadysqlnb = 0)
 	return $amount;
 }
 
-
 /**
  * Output a dimension with best unit
  *
@@ -5389,7 +5389,7 @@ function picto_required()
  */
 function dol_string_nohtmltag($stringtoclean, $removelinefeed = 1, $pagecodeto = 'UTF-8', $strip_tags = 0)
 {
-	if ($removelinefeed == 2) $stringtoclean = preg_replace('/<br[^>]*>\n+/ims', '<br>', $stringtoclean);
+	if ($removelinefeed == 2) $stringtoclean = preg_replace('/<br[^>]*>(\n|\r)+/ims', '<br>', $stringtoclean);
 	$temp = preg_replace('/<br[^>]*>/i', "\n", $stringtoclean);
 
 	if ($strip_tags) {
@@ -5756,9 +5756,9 @@ function dol_textishtml($msg, $option = 0)
 		elseif (preg_match('/<body/i', $msg))			return true;
 		elseif (preg_match('/<(b|em|i|u)>/i', $msg))		return true;
 		elseif (preg_match('/<br\/>/i', $msg))	  return true;
-		elseif (preg_match('/<(br|div|font|li|p|span|strong|table)>/i', $msg)) 	  return true;
-		elseif (preg_match('/<(br|div|font|li|p|span|strong|table)\s+[^<>\/]*>/i', $msg)) return true;
-		elseif (preg_match('/<(br|div|font|li|p|span|strong|table)\s+[^<>\/]*\/>/i', $msg)) return true;
+		elseif (preg_match('/<(br|div|font|li|p|span|strong|table|s)>/i', $msg)) 	  return true;
+		elseif (preg_match('/<(br|div|font|li|p|span|strong|table|s)\s+[^<>\/]*>/i', $msg)) return true;
+		elseif (preg_match('/<(br|div|font|li|p|span|strong|table|s)\s+[^<>\/]*\/>/i', $msg)) return true;
 		elseif (preg_match('/<img\s+[^<>]*src[^<>]*>/i', $msg)) return true;	// must accept <img src="http://example.com/aaa.png" />
 		elseif (preg_match('/<a\s+[^<>]*href[^<>]*>/i', $msg)) return true;	// must accept <a href="http://example.com/aaa.png" />
 		elseif (preg_match('/<h[0-9]>/i', $msg))			return true;
@@ -7588,7 +7588,7 @@ function natural_search($fields, $value, $mode = 0, $nofirstand = 0)
 				$i3 = 0;
 				foreach($tmpcrits as $tmpcrit)
 				{
-					if(empty($tmpcrit)) continue;
+                    if($tmpcrit !== '0' && empty($tmpcrit)) continue;
 
 					$newres .= (($i2 > 0 || $i3 > 0) ? ' OR ' : '');
 
@@ -7705,19 +7705,16 @@ function getAdvancedPreviewUrl($modulepart, $relativepath, $alldata = 0, $param 
 
 	if (empty($conf->use_javascript_ajax)) return '';
 
-	$mime_preview = array('bmp', 'jpeg', 'png', 'gif', 'tiff', 'pdf', 'plain', 'css', 'svg+xml');
-	//$mime_preview[]='vnd.oasis.opendocument.presentation';
-	//$mime_preview[]='archive';
-	$num_mime = array_search(dol_mimetype($relativepath, '', 1), $mime_preview);
+	$isAllowedForPreview = dolIsAllowedForPreview($relativepath);
 
 	if ($alldata == 1)
 	{
-		if ($num_mime !== false) return array('target'=>'_blank', 'css'=>'documentpreview', 'url'=>DOL_URL_ROOT.'/document.php?modulepart='.$modulepart.'&attachment=0&file='.urlencode($relativepath).($param?'&'.$param:''), 'mime'=>dol_mimetype($relativepath), );
+		if ($isAllowedForPreview) return array('target'=>'_blank', 'css'=>'documentpreview', 'url'=>DOL_URL_ROOT.'/document.php?modulepart='.$modulepart.'&attachment=0&file='.urlencode($relativepath).($param?'&'.$param:''), 'mime'=>dol_mimetype($relativepath), );
 		else return array();
 	}
 
-	// old behavior
-	if ($num_mime !== false) return 'javascript:document_preview(\''.dol_escape_js(DOL_URL_ROOT.'/document.php?modulepart='.$modulepart.'&attachment=0&file='.urlencode($relativepath).($param?'&'.$param:'')).'\', \''.dol_mimetype($relativepath).'\', \''.dol_escape_js($langs->trans('Preview')).'\')';
+	// old behavior, return a string
+	if ($isAllowedForPreview) return 'javascript:document_preview(\''.dol_escape_js(DOL_URL_ROOT.'/document.php?modulepart='.$modulepart.'&attachment=0&file='.urlencode($relativepath).($param?'&'.$param:'')).'\', \''.dol_mimetype($relativepath).'\', \''.dol_escape_js($langs->trans('Preview')).'\')';
 	else return '';
 }
 
@@ -7741,6 +7738,31 @@ function ajax_autoselect($htmlname, $addlink = '')
 	return $out;
 }
 
+/**
+ *	Return if a file is qualified for preview
+ *
+ *	@param	string	$file		Filename we looking for information
+ *	@return int					1 If allowed, 0 otherwise
+ *  @see    dol_mimetype(), image_format_supported() from images.lib.php
+ */
+function dolIsAllowedForPreview($file)
+{
+	global $conf;
+
+	// Check .noexe extension in filename
+	if (preg_match('/\.noexe$/i', $file)) return 0;
+
+	// Check mime types
+	$mime_preview = array('bmp', 'jpeg', 'png', 'gif', 'tiff', 'pdf', 'plain', 'css', 'webp');
+	if (!empty($conf->global->MAIN_ALLOW_SVG_FILES_AS_IMAGES)) $mime_preview[] = 'svg+xml';
+	//$mime_preview[]='vnd.oasis.opendocument.presentation';
+	//$mime_preview[]='archive';
+	$num_mime = array_search(dol_mimetype($file, '', 1), $mime_preview);
+	if ($num_mime !== false) return 1;
+
+	// By default, not allowed for preview
+	return 0;
+}
 
 /**
  *	Return mime type of a file
@@ -7749,7 +7771,7 @@ function ajax_autoselect($htmlname, $addlink = '')
  *  @param  string	$default    Default mime type if extension not found in known list
  * 	@param	int		$mode    	0=Return full mime, 1=otherwise short mime string, 2=image for mime type, 3=source language, 4=css of font fa
  *	@return string 		    	Return a mime type family (text/xxx, application/xxx, image/xxx, audio, video, archive)
- *  @see    image_format_supported() from images.lib.php
+ *  @see    dolIsAllowedForPreview(), image_format_supported() from images.lib.php
  */
 function dol_mimetype($file, $default = 'application/octet-stream', $mode = 0)
 {
@@ -8258,7 +8280,7 @@ function dolGetButtonTitle($label, $helpText = '', $iconClass = 'fa fa-file', $u
         $attr['class'] .= ' classfortooltip';
     }
 
-    if(empty($id)){
+    if(!empty($id)){
         $attr['id'] = $id;
     }
 
@@ -8324,4 +8346,25 @@ function isAFileWithExecutableContent($filename)
         return true;
     }
     return false;
+}
+
+/**
+ * Return the value of token currently saved into session with name 'newtoken'.
+ * This token must be send by any POST as it will be used by next page for comparison with value in session.
+ *
+ * @return  string
+ */
+function newToken()
+{
+	return $_SESSION['newtoken'];
+}
+
+/**
+ * Return the value of token currently saved into session with name 'token'.
+ *
+ * @return  string
+ */
+function currentToken()
+{
+	return $_SESSION['token'];
 }

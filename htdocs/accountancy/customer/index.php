@@ -153,6 +153,8 @@ if ($action == 'validatehistory') {
 		while ($i < min($num_lines, 10000)) {	// No more than 10000 at once
 			$objp = $db->fetch_object($result);
 
+			$isBuyerInEEC = isInEEC($objp);
+
 			// Search suggested account for product/service
 			$suggestedaccountingaccountfor = '';
 			if (($objp->country_code == $mysoc->country_code) || empty($objp->country_code)) {  // If buyer in same country than seller (if not defined, we assume it is same country)
@@ -250,6 +252,7 @@ $sql .= "  LEFT JOIN " . MAIN_DB_PREFIX . "accounting_account as aa ON aa.rowid 
 $sql .= " WHERE f.datef >= '" . $db->idate($search_date_start) . "'";
 $sql .= "  AND f.datef <= '" . $db->idate($search_date_end) . "'";
 $sql .= " AND f.fk_statut > 0";
+$sql .= " AND fd.product_type <= 2";
 $sql .= " AND f.entity IN (" . getEntity('invoice', 0) . ")";   // We don't share object for accountancy
 $sql .= " AND aa.account_number IS NULL";
 if (! empty($conf->global->FACTURE_DEPOSITS_ARE_JUST_PAYMENTS)) {
@@ -327,6 +330,7 @@ $sql .= " WHERE f.datef >= '" . $db->idate($search_date_start) . "'";
 $sql .= "  AND f.datef <= '" . $db->idate($search_date_end) . "'";
 $sql .= " AND f.entity IN (" . getEntity('invoice', 0) . ")";   // We don't share object for accountancy
 $sql .= " AND f.fk_statut > 0";
+$sql .= " AND fd.product_type <= 2";
 if (! empty($conf->global->FACTURE_DEPOSITS_ARE_JUST_PAYMENTS)) {
 	$sql .= " AND f.type IN (" . Facture::TYPE_STANDARD . "," . Facture::TYPE_REPLACEMENT . "," . Facture::TYPE_CREDIT_NOTE . "," . Facture::TYPE_SITUATION . ")";
 } else {
@@ -404,6 +408,7 @@ if ($conf->global->MAIN_FEATURES_LEVEL > 0) // This part of code looks strange. 
 	$sql .= "  AND f.datef <= '" . $db->idate($search_date_end) . "'";
 	$sql .= " AND f.entity IN (" . getEntity('invoice', 0) . ")"; // We don't share object for accountancy
 	$sql .= " AND f.fk_statut > 0";
+	$sql .= " AND fd.product_type <= 2";
 	if (! empty($conf->global->FACTURE_DEPOSITS_ARE_JUST_PAYMENTS)) {
 		$sql .= " AND f.type IN (" . Facture::TYPE_STANDARD . "," . Facture::TYPE_REPLACEMENT . "," . Facture::TYPE_CREDIT_NOTE . "," . Facture::TYPE_SITUATION . ")";
 	} else {
@@ -456,6 +461,7 @@ if ($conf->global->MAIN_FEATURES_LEVEL > 0) // This part of code looks strange. 
 		$sql .= "  AND f.datef <= '" . $db->idate($search_date_end) . "'";
 		$sql .= " AND f.entity IN (" . getEntity('invoice', 0) . ")";   // We don't share object for accountancy
 		$sql .= " AND f.fk_statut > 0";
+		$sql .= " AND fd.product_type <= 2";
 		if (! empty($conf->global->FACTURE_DEPOSITS_ARE_JUST_PAYMENTS)) {
 			$sql .= " AND f.type IN (" . Facture::TYPE_STANDARD . "," . Facture::TYPE_REPLACEMENT . "," . Facture::TYPE_CREDIT_NOTE . "," . Facture::TYPE_SITUATION . ")";
 		} else {

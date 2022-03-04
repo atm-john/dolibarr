@@ -236,7 +236,11 @@ if (! $error && $massaction == 'confirm_presend')
 				// Test recipient
 				if (empty($sendto)) 	// For the case, no recipient were set (multi thirdparties send)
 				{
-					if ($objectobj->element == 'expensereport')
+					if ($objectobj->element == 'societe')
+					{
+						$sendto = $objectobj->email;
+					}
+					elseif ($objectobj->element == 'expensereport')
 					{
 						$fuser = new User($db);
 						$fuser->fetch($objectobj->fk_user_author);
@@ -257,6 +261,10 @@ if (! $error && $massaction == 'confirm_presend')
 
 				if (empty($sendto))
 				{
+					if ($objectobj->element == 'societe') {
+						$objectobj->thirdparty = $objectobj;	// Hack so following code is comaptible when objectobj is a thirdparty
+					}
+
 				   	//print "No recipient for thirdparty ".$objectobj->thirdparty->name;
 				   	$nbignored++;
 				   	if (empty($thirdpartywithoutemail[$objectobj->thirdparty->id]))
@@ -658,11 +666,11 @@ if ($massaction == 'confirm_createbills')   // Create bills from orders
 
 				for ($i=0;$i<$num;$i++)
 				{
-					$desc=($lines[$i]->desc?$lines[$i]->desc:$lines[$i]->libelle);
+					$desc=($lines[$i]->desc?$lines[$i]->desc:'');
 					// If we build one invoice for several order, we must put the invoice of order on the line
 					if (! empty($createbills_onebythird))
 					{
-					    $desc=dol_concatdesc($desc, $langs->trans("Order").' '.$cmd->ref.' - '.dol_print_date($cmd->date, 'day', $langs));
+					    $desc=dol_concatdesc($desc, $langs->trans("Order").' '.$cmd->ref.' - '.dol_print_date($cmd->date, 'day'));
 					}
 
 					if ($lines[$i]->subprice < 0)

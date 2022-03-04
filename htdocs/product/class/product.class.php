@@ -819,9 +819,9 @@ class Product extends CommonObject
         $this->height = price2num($this->height);
         $this->height_units = trim($this->height_units);
         // set unit not defined
-        if ($this->length_units) { $this->width_units = $this->length_units;    // Not used yet
+        if (is_numeric($this->length_units)) { $this->width_units = $this->length_units;    // Not used yet
         }
-        if ($this->length_units) { $this->height_units = $this->length_units;    // Not used yet
+        if (is_numeric($this->length_units)) { $this->height_units = $this->length_units;    // Not used yet
         }
         // Automated compute surface and volume if not filled
         if (empty($this->surface) && !empty($this->length) && !empty($this->width) && $this->length_units == $this->width_units) {
@@ -980,7 +980,7 @@ class Product extends CommonObject
             $sql.= ", accountancy_code_sell= '" . $this->db->escape($this->accountancy_code_sell)."'";
             $sql.= ", accountancy_code_sell_intra= '" . $this->db->escape($this->accountancy_code_sell_intra)."'";
             $sql.= ", accountancy_code_sell_export= '" . $this->db->escape($this->accountancy_code_sell_export)."'";
-            $sql.= ", desiredstock = " . ((isset($this->desiredstock) && $this->desiredstock != '') ? (int) $this->desiredstock : "null");
+            $sql.= ", desiredstock = " . ((isset($this->desiredstock) && is_numeric($this->desiredstock)) ? (int) $this->desiredstock : "null");
             $sql.= ", cost_price = " . ($this->cost_price != '' ? $this->db->escape($this->cost_price) : 'null');
             $sql.= ", fk_unit= " . (!$this->fk_unit ? 'NULL' : (int) $this->fk_unit);
             $sql.= ", price_autogen = " . (!$this->price_autogen ? 0 : 1);
@@ -1859,6 +1859,9 @@ class Product extends CommonObject
         if (empty($newnpr)) {
             $newnpr=0;
         }
+        if (empty($newminprice)) {
+        	$newminprice=0;
+        }
 
         // Check parameters
         if ($newvat == '') {
@@ -2633,12 +2636,13 @@ class Product extends CommonObject
     /**
      *  Charge tableau des stats expedition client pour le produit/service
      *
-     * @param  int    $socid           Id societe pour filtrer sur une societe
-     * @param  string $filtrestatut    Id statut pour filtrer sur un statut
-     * @param  int    $forVirtualStock Ignore rights filter for virtual stock calculation.
-     * @return array                   Tableau des stats
+     * @param   int         $socid                  Id societe pour filtrer sur une societe
+     * @param   string      $filtrestatut           [=''] Ids order status separated by comma
+     * @param   int         $forVirtualStock        Ignore rights filter for virtual stock calculation.
+     * @param   string      $filterShipmentStatus   [=''] Ids shipment status separated by comma
+     * @return  int         <0 if KO, >0 if OK (Tableau des stats)
      */
-    public function load_stats_sending($socid = 0, $filtrestatut = '', $forVirtualStock = 0)
+    public function load_stats_sending($socid = 0, $filtrestatut = '', $forVirtualStock = 0, $filterShipmentStatus = '')
     {
         // phpcs:enable
         global $conf,$user;
@@ -2668,6 +2672,7 @@ class Product extends CommonObject
         if ($filtrestatut <> '') {
             $sql.= " AND c.fk_statut in (".$filtrestatut.")";
         }
+        if (!empty($filterShipmentStatus)) $sql.= " AND e.fk_statut IN (" . $filterShipmentStatus . ")";
 
         $result = $this->db->query($sql);
         if ($result ) {
@@ -4461,7 +4466,14 @@ class Product extends CommonObject
 		}
 		if (! empty($conf->expedition->enabled))
 		{
-			$result=$this->load_stats_sending(0, '1,2', 1);
+            require_once DOL_DOCUMENT_ROOT . '/expedition/class/expedition.class.php';
+            $filterShipmentStatus = '';
+            if (!empty($conf->global->STOCK_CALCULATE_ON_SHIPMENT)) {
+                $filterShipmentStatus = Expedition::STATUS_VALIDATED  . ',' . Expedition::STATUS_CLOSED;
+            } elseif (!empty($conf->global->STOCK_CALCULATE_ON_SHIPMENT_CLOSE)) {
+                $filterShipmentStatus = Expedition::STATUS_CLOSED;
+            }
+            $result = $this->load_stats_sending(0, '1,2', 1, $filterShipmentStatus);
 			if ($result < 0) dol_print_error($this->db, $this->error);
 			$stock_sending_client=$this->stats_expedition['qty'];
 		}
