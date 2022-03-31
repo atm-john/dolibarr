@@ -2118,6 +2118,7 @@ class ExtraFields
 						$value_key = '';
 					} else {
 						$value_arr = GETPOST($keysuffix."options_".$key.$keyprefix);
+						if ($value_arr<0) { $value_arr = ''; }
 						$value_key = $value_arr;
 					}
 				} else {
