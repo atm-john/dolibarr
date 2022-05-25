@@ -30,6 +30,9 @@ class FormList
 	/** @var FormListColumns[]  */
 	public $columns = array();
 
+	/** @var FormListRow[] */
+	public $rows = array();
+
 	/** @var Translate */
 	public $langs;
 
