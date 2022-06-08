@@ -110,7 +110,7 @@ class EmailCollector extends CommonObject
 	public $fields = array(
 		'rowid'         => array('type'=>'integer', 'label'=>'TechnicalID', 'visible'=>2, 'enabled'=>1, 'position'=>1, 'notnull'=>1, 'index'=>1),
 		'entity'        => array('type'=>'integer', 'label'=>'Entity', 'enabled'=>1, 'visible'=>0, 'default'=>1, 'notnull'=>1, 'index'=>1, 'position'=>20),
-		'ref'           => array('type'=>'varchar(128)', 'label'=>'Ref', 'enabled'=>1, 'visible'=>1, 'notnull'=>1, 'showoncombobox'=>1, 'index'=>1, 'position'=>10, 'searchall'=>1, 'help'=>'Example: MyCollector1', 'csslist'=>'tdoverflowmax150'),
+		'ref'           => array('type'=>'varchar(128)', 'label'=>'Ref', 'enabled'=>1, 'visible'=>1, 'notnull'=>1, 'showoncombobox'=>1, 'index'=>1, 'position'=>10, 'searchall'=>1, 'help'=>'Example: MyCollector1', 'csslist'=>'tdoverflowmax250'),
 		'label'         => array('type'=>'varchar(255)', 'label'=>'Label', 'visible'=>1, 'enabled'=>1, 'position'=>30, 'notnull'=>-1, 'searchall'=>1, 'help'=>'Example: My Email collector', 'csslist'=>'tdoverflowmax150'),
 		'description'   => array('type'=>'text', 'label'=>'Description', 'visible'=>-1, 'enabled'=>1, 'position'=>60, 'notnull'=>-1, 'csslist'=>'small'),
 		'host'          => array('type'=>'varchar(255)', 'label'=>'EMailHost', 'visible'=>1, 'enabled'=>1, 'position'=>90, 'notnull'=>1, 'searchall'=>1, 'comment'=>"IMAP server", 'help'=>'Example: imap.gmail.com', 'csslist'=>'tdoverflow125'),
@@ -901,9 +901,17 @@ class EmailCollector extends CommonObject
 							// Overwrite param $tmpproperty
 							$valueextracted = isset($regforval[count($regforval) - 1]) ?trim($regforval[count($regforval) - 1]) : null;
 							if (strtolower($sourcefield) == 'header') {
-								$object->$tmpproperty = $this->decodeSMTPSubject($valueextracted);
+								if (preg_match('/^options_/', $tmpproperty)) {
+									$object->array_options[preg_replace('/^options_/', '', $tmpproperty)] = $this->decodeSMTPSubject($valueextracted);
+								} else {
+									$object->$tmpproperty = $this->decodeSMTPSubject($valueextracted);
+								}
 							} else {
-								$object->$tmpproperty = $valueextracted;
+								if (preg_match('/^options_/', $tmpproperty)) {
+									$object->array_options[preg_replace('/^options_/', '', $tmpproperty)] = $this->decodeSMTPSubject($valueextracted);
+								} else {
+									$object->$tmpproperty = $this->decodeSMTPSubject($valueextracted);
+								}
 							}
 						} else {
 							// Regex not found
@@ -970,7 +978,7 @@ class EmailCollector extends CommonObject
 
 		require_once DOL_DOCUMENT_ROOT.'/comm/action/class/actioncomm.class.php';
 
-		dol_syslog("EmailCollector::doCollectOneCollector start for id=".$this->id, LOG_DEBUG);
+		dol_syslog("EmailCollector::doCollectOneCollector start for id=".$this->id." - ".$this->ref, LOG_DEBUG);
 
 		$langs->loadLangs(array("project", "companies", "mails", "errors", "ticket", "agenda", "commercial"));
 
@@ -1251,19 +1259,21 @@ class EmailCollector extends CommonObject
 				$headers['Subject'] = $this->decodeSMTPSubject($headers['Subject']);
 
 
-				dol_syslog("** Process email ".$iforemailloop." References: ".$headers['References']);
+				dol_syslog("** Process email ".$iforemailloop." References: ".$headers['References']." Subject: ".$headers['Subject']);
 				//print "Process mail ".$iforemailloop." Subject: ".dol_escape_htmltag($headers['Subject'])." References: ".dol_escape_htmltag($headers['References'])." In-Reply-To: ".dol_escape_htmltag($headers['In-Reply-To'])."<br>\n";
 
 				// If there is a filter on trackid
 				if ($searchfilterdoltrackid > 0) {
 					if (empty($headers['References']) || !preg_match('/@'.preg_quote($host, '/').'/', $headers['References'])) {
 						$nbemailprocessed++;
+						dol_syslog(" Discarded - No header References found");
 						continue; // Exclude email
 					}
 				}
 				if ($searchfilternodoltrackid > 0) {
 					if (!empty($headers['References']) && preg_match('/@'.preg_quote($host, '/').'/', $headers['References'])) {
 						$nbemailprocessed++;
+						dol_syslog(" Discarded - Header References found and matching signature of application");
 						continue; // Exclude email
 					}
 				}
@@ -1271,6 +1281,7 @@ class EmailCollector extends CommonObject
 				if ($searchfilterisanswer > 0) {
 					if (empty($headers['In-Reply-To'])) {
 						$nbemailprocessed++;
+						dol_syslog(" Discarded - Email is not an answer (no In-Reply-To header)");
 						continue; // Exclude email
 					}
 					// Note: we can have
@@ -1284,6 +1295,7 @@ class EmailCollector extends CommonObject
 
 					if (!$isanswer) {
 						$nbemailprocessed++;
+						dol_syslog(" Discarded - Email is not an answer (no RE prefix in subject)");
 						continue; // Exclude email
 					}
 				}
@@ -1299,6 +1311,7 @@ class EmailCollector extends CommonObject
 						//if ($headers['In-Reply-To'] != $headers['Message-ID'] && !empty($headers['References']) && strpos($headers['References'], $headers['Message-ID']) !== false) $isanswer = 1;
 						if ($isanswer) {
 							$nbemailprocessed++;
+							dol_syslog(" Discarded - Email is an answer");
 							continue; // Exclude email
 						}
 					}
