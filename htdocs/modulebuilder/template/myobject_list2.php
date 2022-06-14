@@ -78,6 +78,7 @@ if (!$res) {
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formlist.class.php';
 
 // load mymodule libraries
 require_once __DIR__.'/class/myobject.class.php';
@@ -121,6 +122,7 @@ $extrafields = new ExtraFields($db);
 
 $diroutputmassaction = $conf->mymodule->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array('myobjectlist')); // Note that conf->hooks_modules contains array
+
 
 // Fetch optionals attributes and labels
 $extrafields->fetch_name_optionals_label($object->table_element);
@@ -256,6 +258,7 @@ if (empty($reshook)) {
  */
 
 $form = new Form($db);
+
 
 
 $now = dol_now();
@@ -424,6 +427,10 @@ if ($num == 1 && !empty($conf->global->MAIN_SEARCH_DIRECT_OPEN_IF_ONLY_ONE) && $
 
 llxHeader('', $title, $help_url, '', 0, 0, $morejs, $morecss, '', 'bodyforlist');
 
+
+
+$commonList = new CommonList($db);
+
 // Example : Adding jquery code
 // print '<script type="text/javascript">
 // jQuery(document).ready(function() {
@@ -472,33 +479,40 @@ $parameters = array();
 $reshook = $hookmanager->executeHooks('printFieldListSearchParam', $parameters, $object); // Note that $action and $object may have been modified by hook
 $param .= $hookmanager->resPrint;
 
+
+$commonList->param = $param;
+
 // List of mass actions available
-$arrayofmassactions = array(
+$commonList->arrayOfMassActions = array(
 	//'validate'=>img_picto('', 'check', 'class="pictofixedwidth"').$langs->trans("Validate"),
 	//'generate_doc'=>img_picto('', 'pdf', 'class="pictofixedwidth"').$langs->trans("ReGeneratePDF"),
 	//'builddoc'=>img_picto('', 'pdf', 'class="pictofixedwidth"').$langs->trans("PDFMerge"),
 	//'presend'=>img_picto('', 'email', 'class="pictofixedwidth"').$langs->trans("SendByMail"),
 );
 if (!empty($permissiontodelete)) {
-	$arrayofmassactions['predelete'] = img_picto('', 'delete', 'class="pictofixedwidth"').$langs->trans("Delete");
+	$commonList->arrayOfMassActions['predelete'] = img_picto('', 'delete', 'class="pictofixedwidth"').$langs->trans("Delete");
 }
 if (GETPOST('nomassaction', 'int') || in_array($massaction, array('presend', 'predelete'))) {
-	$arrayofmassactions = array();
+	$commonList->clearMassAction();
 }
-$massactionbutton = $form->selectMassAction('', $arrayofmassactions);
+$massactionbutton = $form->selectMassAction('', $commonList->arrayOfMassActions);
 
-print '<form method="POST" id="searchFormList" action="'.$_SERVER["PHP_SELF"].'">'."\n";
+
+// Set hidden fields for list
+$commonList->htmlInOutputForm.= '<input type="hidden" id="formfilteraction" name="formfilteraction" value="list" />'; // TODO use setFormHiddenInput
+
 if ($optioncss != '') {
-	print '<input type="hidden" name="optioncss" value="'.$optioncss.'">';
+	$commonList->setFormHiddenInput('optioncss', $optioncss);
 }
-print '<input type="hidden" name="token" value="'.newToken().'">';
-print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
-print '<input type="hidden" name="action" value="list">';
-print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
-print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
-print '<input type="hidden" name="page" value="'.$page.'">';
-print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
-print '<input type="hidden" name="mode" value="'.$mode.'">';
+
+$commonList->setFormHiddenInputs(array(
+	'action' => 'list',
+	'sortfield' => $sortfield,
+	'sortorder' => $sortorder,
+	'page' => $page,
+	'contextpage' => $contextpage,
+	'mode' => $mode,
+));
 
 
 $newcardbutton = '';
@@ -526,6 +540,8 @@ if ($search_all) {
 	print '<div class="divsearchfieldfilter">'.$langs->trans("FilterOnInto", $search_all).join(', ', $fieldstosearchall).'</div>'."\n";
 }
 
+
+// MORE FILTERS
 $moreforfilter = '';
 /*$moreforfilter.='<div class="divsearchfield">';
 $moreforfilter.= $langs->trans('MyFilter') . ': <input type="text" name="search_myfield" value="'.dol_escape_htmltag($search_myfield).'">';
@@ -540,14 +556,136 @@ if (empty($reshook)) {
 }
 
 if (!empty($moreforfilter)) {
-	print '<div class="liste_titre liste_titre_bydiv centpercent">';
-	print $moreforfilter;
-	print '</div>';
+	$commonList->htmlInOutputForm.=  '<div class="liste_titre liste_titre_bydiv centpercent">' . $moreforfilter . '</div>';
+	$commonList->tableClass.= " listwithfilterbefore";
 }
+
+// DEFINE TABLE COLUMNS
+foreach ($object->fields as $key => $val) {
+	$colItem = $commonList->newColumn($key, !isset($val->position) ? $val->position : 0);
+	$colItem->selected = $arrayfields['t.' . $key]['checked'];
+
+	if (!empty($val['visible'])) {
+		$visible = (int) dol_eval($val['visible'], 1);
+		$colItem->enabled = abs($visible) != 3 && dol_eval($val['enabled'], 1);
+	}
+}
+
+// Add columns field filters
+$headFilters = $commonList->newRow('headFilters', 'header');
+
+foreach ($object->fields as $key => $val) {
+	//  $headFilters->ne
+
+
+	$searchkey = empty($search[$key]) ? '' : $search[$key];
+	$cssforfield = (empty($val['css']) ? '' : $val['css']);
+	if ($key == 'status') {
+		$cssforfield .= ($cssforfield ? ' ' : '').'center';
+	} elseif (in_array($val['type'], array('date', 'datetime', 'timestamp'))) {
+		$cssforfield .= ($cssforfield ? ' ' : '').'center';
+	} elseif (in_array($val['type'], array('timestamp'))) {
+		$cssforfield .= ($cssforfield ? ' ' : '').'nowrap';
+	} elseif (in_array($val['type'], array('double(24,8)', 'double(6,3)', 'integer', 'real', 'price')) && $val['label'] != 'TechnicalID' && empty($val['arrayofkeyval'])) {
+		$cssforfield .= ($cssforfield ? ' ' : '').'right';
+	}
+
+
+	if (!empty($arrayfields['t.'.$key]['checked'])) {
+		print '<td class="liste_titre'.($cssforfield ? ' '.$cssforfield : '').'">';
+		if (!empty($val['arrayofkeyval']) && is_array($val['arrayofkeyval'])) {
+			print $form->selectarray('search_'.$key, $val['arrayofkeyval'], (isset($search[$key]) ? $search[$key] : ''), $val['notnull'], 0, 0, '', 1, 0, 0, '', 'maxwidth100', 1);
+		} elseif ((strpos($val['type'], 'integer:') === 0) || (strpos($val['type'], 'sellist:') === 0)) {
+			print $object->showInputField($val, $key, (isset($search[$key]) ? $search[$key] : ''), '', '', 'search_', $cssforfield.' maxwidth250', 1);
+		} elseif (preg_match('/^(date|timestamp|datetime)/', $val['type'])) {
+			print '<div class="nowrap">';
+			print $form->selectDate($search[$key.'_dtstart'] ? $search[$key.'_dtstart'] : '', "search_".$key."_dtstart", 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', $langs->trans('From'));
+			print '</div>';
+			print '<div class="nowrap">';
+			print $form->selectDate($search[$key.'_dtend'] ? $search[$key.'_dtend'] : '', "search_".$key."_dtend", 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', $langs->trans('to'));
+			print '</div>';
+		} elseif ($key == 'lang') {
+			require_once DOL_DOCUMENT_ROOT.'/core/class/html.formadmin.class.php';
+			$formadmin = new FormAdmin($db);
+			print $formadmin->select_language($search[$key], 'search_lang', 0, null, 1, 0, 0, 'minwidth150 maxwidth200', 2);
+		} else {
+			print '<input type="text" class="flat maxwidth75" name="search_'.$key.'" value="'.dol_escape_htmltag(isset($search[$key]) ? $search[$key] : '').'">';
+		}
+		print '</td>';
+	}
+}
+
+
+
+$colAction = $commonList->newColumn('action', !empty($conf->global->MAIN_CHECKBOX_LEFT_COLUMN)?0:9999);
+
+
+// GENERATE TABLE OUTPUT
+print $commonList->generateOutput();
+
+/** ----------------------------------------------------------- */
+
+
+print '<hr/>';
+print '<hr/>';
+
+print '<form method="POST" id="searchFormList" action="'.$_SERVER["PHP_SELF"].'">'."\n";
+//if ($optioncss != '') {
+//	print '<input type="hidden" name="optioncss" value="'.$optioncss.'">';
+//}
+//print '<input type="hidden" name="token" value="'.newToken().'">';
+//print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
+//print '<input type="hidden" name="action" value="list">';
+//print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
+//print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
+//print '<input type="hidden" name="page" value="'.$page.'">';
+//print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
+//print '<input type="hidden" name="mode" value="'.$mode.'">';
+//$newcardbutton = '';
+//$newcardbutton .= dolGetButtonTitle($langs->trans('ViewList'), '', 'fa fa-bars imgforviewmode', $_SERVER["PHP_SELF"].'?mode=common'.preg_replace('/(&|\?)*mode=[^&]+/', '', $param), '', ((empty($mode) || $mode == 'common') ? 2 : 1), array('morecss'=>'reposition'));
+//$newcardbutton .= dolGetButtonTitle($langs->trans('ViewKanban'), '', 'fa fa-th-list imgforviewmode', $_SERVER["PHP_SELF"].'?mode=kanban'.preg_replace('/(&|\?)*mode=[^&]+/', '', $param), '', ($mode == 'kanban' ? 2 : 1), array('morecss'=>'reposition'));
+//$newcardbutton .= dolGetButtonTitleSeparator();
+//$newcardbutton .= dolGetButtonTitle($langs->trans('New'), '', 'fa fa-plus-circle', dol_buildpath('/mymodule/myobject_card.php', 1).'?action=create&backtopage='.urlencode($_SERVER['PHP_SELF']), '', $permissiontoadd);
+//
+//print_barre_liste($title, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, 'object_'.$object->picto, 0, $newcardbutton, '', $limit, 0, 0, 1);
+//// Add code for pre mass action (confirmation or email presend form)
+//$topicmail = "SendMyObjectRef";
+//$modelmail = "myobject";
+//$objecttmp = new MyObject($db);
+//$trackid = 'xxxx'.$object->id;
+//include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
+//
+//if ($search_all) {
+//	$setupstring = '';
+//	foreach ($fieldstosearchall as $key => $val) {
+//		$fieldstosearchall[$key] = $langs->trans($val);
+//		$setupstring .= $key."=".$val.";";
+//	}
+//	print '<!-- Search done like if PRODUCT_QUICKSEARCH_ON_FIELDS = '.$setupstring.' -->'."\n";
+//	print '<div class="divsearchfieldfilter">'.$langs->trans("FilterOnInto", $search_all).join(', ', $fieldstosearchall).'</div>'."\n";
+//}
+//$moreforfilter = '';
+///*$moreforfilter.='<div class="divsearchfield">';
+//$moreforfilter.= $langs->trans('MyFilter') . ': <input type="text" name="search_myfield" value="'.dol_escape_htmltag($search_myfield).'">';
+//$moreforfilter.= '</div>';*/
+//
+//$parameters = array();
+//$reshook = $hookmanager->executeHooks('printFieldPreListTitle', $parameters, $object); // Note that $action and $object may have been modified by hook
+//if (empty($reshook)) {
+//	$moreforfilter .= $hookmanager->resPrint;
+//} else {
+//	$moreforfilter = $hookmanager->resPrint;
+//}
+//
+//if (!empty($moreforfilter)) {
+//	print '<div class="liste_titre liste_titre_bydiv centpercent">';
+//	print $moreforfilter;
+//	print '</div>';
+//}
 
 $varpage = empty($contextpage) ? $_SERVER["PHP_SELF"] : $contextpage;
 $selectedfields = $form->multiSelectArrayWithCheckbox('selectedfields', $arrayfields, $varpage, getDolGlobalString('MAIN_CHECKBOX_LEFT_COLUMN', '')); // This also change content of $arrayfields
-$selectedfields .= (count($arrayofmassactions) ? $form->showCheckAddButtons('checkforselect', 1) : '');
+$selectedfields .= (count($commonList->arrayOfMassActions) ? $form->showCheckAddButtons('checkforselect', 1) : '');
 
 print '<div class="div-table-responsive">'; // You can use div-table-responsive-no-min if you dont need reserved height for your table
 print '<table class="tagtable nobottomiftotal liste'.($moreforfilter ? " listwithfilterbefore" : "").'">'."\n";
@@ -822,7 +960,7 @@ print '</div>'."\n";
 
 print '</form>'."\n";
 
-if (in_array('builddoc', $arrayofmassactions) && ($nbtotalofrecords === '' || $nbtotalofrecords)) {
+if (in_array('builddoc', $commonList->arrayOfMassActions) && ($nbtotalofrecords === '' || $nbtotalofrecords)) {
 	$hidegeneratedfilelistifempty = 1;
 	if ($massaction == 'builddoc' || $action == 'remove_file' || $show_files) {
 		$hidegeneratedfilelistifempty = 0;
