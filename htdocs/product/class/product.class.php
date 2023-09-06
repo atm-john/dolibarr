@@ -5017,7 +5017,7 @@ class Product extends CommonObject
 			$newref = dol_trunc($newref, $maxlength, 'middle');
 		}
 
-		if (!empty($this->entity)) {
+		if (!empty($this->entity) && empty($conf->global->MAIN_OPTIMISE_DISABLE_NOMURL_PHOTO)) {
 			$tmpphoto = $this->show_photos('product', $conf->product->multidir_output[$this->entity], 1, 1, 0, 0, 0, 80);
 			if ($this->nbphoto > 0) {
 				$label .= '<div class="photointooltip floatright">';
