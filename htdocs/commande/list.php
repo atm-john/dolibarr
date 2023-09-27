@@ -105,7 +105,7 @@ $search_multicurrency_montant_ttc = GETPOST('search_multicurrency_montant_ttc', 
 $search_login = GETPOST('search_login', 'alpha');
 $search_categ_cus = GETPOST("search_categ_cus", 'int');
 $optioncss = GETPOST('optioncss', 'alpha');
-$search_billed = GETPOSTISSET('search_billed') ? GETPOST('search_billed', 'int') : GETPOST('billed', 'int');
+$search_billed = GETPOST('search_billed', 'int');
 $search_status = GETPOST('search_status', 'int');
 $search_btn = GETPOST('button_search', 'alpha');
 $search_remove_btn = GETPOST('button_removefilter', 'alpha');
@@ -222,6 +222,7 @@ include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_array_fields.tpl.php';
 $object->fields = dol_sort_array($object->fields, 'position');
 $arrayfields = dol_sort_array($arrayfields, 'position');
 
+$error = 0;
 
 
 /*
@@ -513,6 +514,7 @@ if (empty($reshook)) {
 							} else {
 								$lineid = 0;
 								$error++;
+								$errors[] = $objecttmp->error;
 								break;
 							}
 							// Defined the new fk_parent_line

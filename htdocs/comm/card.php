@@ -1419,6 +1419,7 @@ if ($object->id > 0) {
 		$sql .= ', f.total_tva';
 		$sql .= ', f.total_ttc';
 		$sql .= ', f.entity';
+		$sql .= ', f.date_lim_reglement as dl';
 		$sql .= ', f.datef as df, f.datec as dc, f.paye as paye, f.fk_statut as status';
 		$sql .= ', s.nom, s.rowid as socid';
 		$sql .= ', SUM(pf.amount) as am';
@@ -1427,7 +1428,7 @@ if ($object->id > 0) {
 		$sql .= " WHERE f.fk_soc = s.rowid AND s.rowid = ".((int) $object->id);
 		$sql .= " AND f.entity IN (".getEntity('invoice').")";
 		$sql .= ' GROUP BY f.rowid, f.ref, f.type, f.total_ht, f.total_tva, f.total_ttc,';
-		$sql .= ' f.entity, f.datef, f.datec, f.paye, f.fk_statut,';
+		$sql .= ' f.entity, f.date_lim_reglement, f.datef, f.datec, f.paye, f.fk_statut,';
 		$sql .= ' s.nom, s.rowid';
 		$sql .= " ORDER BY f.datef DESC, f.datec DESC";
 
@@ -1581,6 +1582,7 @@ if ($object->id > 0) {
 
 			if (isModEnabled('facture') && $object->status == 1) {
 				if (empty($user->rights->facture->creer)) {
+					$langs->load("bills");
 					print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("NotAllowed")).'" href="#">'.$langs->trans("AddBill").'</a></div>';
 				} else {
 					$langs->loadLangs(array("orders", "bills"));
@@ -1593,7 +1595,7 @@ if ($object->id > 0) {
 								print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("NoOrdersToInvoice")).'" href="#">'.$langs->trans("CreateInvoiceForThisCustomer").'</a></div>';
 							}
 						} else {
-							print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("ThirdPartyMustBeEditAsCustomer")).'" href="#">'.$langs->trans("AddBill").'</a></div>';
+							print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("ThirdPartyMustBeEditAsCustomer")).'" href="#">'.$langs->trans("CreateInvoiceForThisCustomer").'</a></div>';
 						}
 					}
 
